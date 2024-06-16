@@ -9,7 +9,7 @@ services:
       POSTGRES_DB: ${PG_DATABASE}
     volumes:
       - ./volumes/postgresql/pg1-data:/var/lib/postgresql/data
-      - ./src/repository/schema.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./src/repository/postgres_repos/schema.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - ${PG_POST}:5432
 

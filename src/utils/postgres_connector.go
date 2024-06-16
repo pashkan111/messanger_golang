@@ -1,28 +1,30 @@
 package utils
 
 import (
+	"fmt"
 	"os"
-	"strconv"
 
-	"github.com/jackc/pgx"
+	"context"
+
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
 )
 
-func GetPostgresConn(log *logrus.Logger) *pgx.Conn {
+func GetPostgresPool(ctx context.Context, log *logrus.Logger) *pgxpool.Pool {
 	godotenv.Load()
 
-	port, _ := strconv.Atoi(os.Getenv("PG_POST"))
-	postgresUrl := pgx.ConnConfig{
-		Host:     os.Getenv("PG_HOST"),
-		Port:     uint16(port),
-		Database: os.Getenv("PG_DATABASE"),
-		User:     os.Getenv("PG_USER"),
-		Password: os.Getenv("PG_PASSWORD"),
-	}
-	conn, err := pgx.Connect(postgresUrl)
+	postgresUrl := fmt.Sprintf(
+		"postgres://%s:%s@%s:%s/%s",
+		os.Getenv("PG_USER"),
+		os.Getenv("PG_PASSWORD"),
+		os.Getenv("PG_HOST"),
+		os.Getenv("PG_POST"),
+		os.Getenv("PG_DATABASE"),
+	)
+	pool, err := pgxpool.Connect(ctx, postgresUrl)
 	if err != nil {
 		log.Error("Error with connecting to DB", err)
 	}
-	return conn
+	return pool
 }
