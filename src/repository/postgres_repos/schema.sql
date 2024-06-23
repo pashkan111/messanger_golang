@@ -9,7 +9,8 @@ CREATE TABLE users (
 CREATE TABLE chat (
     chat_id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    participants INTEGER[] DEFAULT '{}'
+    participants INTEGER[] DEFAULT '{}',
+    deleted BOOLEAN DEFAULT FALSE
 );
 
 CREATE TABLE message (

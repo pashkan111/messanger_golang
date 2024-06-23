@@ -23,6 +23,41 @@ func GetUserByPhone(ctx context.Context, pool *pgxpool.Pool, log *logrus.Logger,
 
 	rows, err := conn.Query(ctx, "SELECT * FROM users WHERE phone = $1", phone)
 	if err != nil {
+		log.Error("Error with getting user by phone:", err)
+		return user
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		err = rows.Scan(&user.Id, &user.Username, &chats, &user.Password, &user.Phone)
+		if err != nil {
+			log.Error("Error with scanning user by phone:", err)
+			return user
+		}
+	}
+
+	if chats.Status == pgtype.Present {
+		user.Chats = make([]int, len(chats.Elements))
+		for i, elem := range chats.Elements {
+			user.Chats[i] = int(elem.Int)
+		}
+	}
+	return user
+}
+
+func GetUserByID(ctx context.Context, pool *pgxpool.Pool, log *logrus.Logger, id int) entities.UserAuth {
+	var user entities.UserAuth
+	var chats pgtype.Int4Array
+
+	conn, err := pool.Acquire(ctx)
+	if err != nil {
+		log.Error("Error with acquiring connection:", err)
+		return user
+	}
+	defer conn.Release()
+
+	rows, err := conn.Query(ctx, "SELECT * FROM users WHERE user_id = $1", id)
+	if err != nil {
 		log.Error("Error with getting user by id:", err)
 		return user
 	}

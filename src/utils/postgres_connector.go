@@ -19,7 +19,7 @@ func GetPostgresPool(ctx context.Context, log *logrus.Logger) *pgxpool.Pool {
 		os.Getenv("PG_USER"),
 		os.Getenv("PG_PASSWORD"),
 		os.Getenv("PG_HOST"),
-		os.Getenv("PG_POST"),
+		os.Getenv("PG_PORT"),
 		os.Getenv("PG_DATABASE"),
 	)
 	pool, err := pgxpool.Connect(ctx, postgresUrl)

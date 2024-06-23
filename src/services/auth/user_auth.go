@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"fmt"
 
 	"messanger/src/entities"
 	"messanger/src/repository/postgres_repos"
@@ -49,11 +50,36 @@ func LoginUser(
 	ctx context.Context,
 	pool *pgxpool.Pool,
 	log *logrus.Logger,
-	phone, password string,
+	login_data entities.UserLoginRequest,
+) (*entities.UserTokens, error) {
+	user := postgres_repos.GetUserByPhone(ctx, pool, log, login_data.Phone)
+	if user.Id == 0 {
+		return nil, fmt.Errorf("user with phone %s not found", login_data.Phone)
+	}
+	if !CheckPasswordHash(login_data.Password, user.Password) {
+		return nil, fmt.Errorf("incorrect password")
+	}
+	tokens, err := GenerateTokens(user.Id)
+	if err != nil {
+		log.Error("Error with generating tokens:", err)
+		return nil, err
+	}
+	return tokens, nil
+}
+
+func CheckToken(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	log *logrus.Logger,
+	token entities.Token,
 ) (entities.UserAuth, error) {
-	user := postgres_repos.GetUserByPhone(ctx, pool, log, phone)
-	if !CheckPasswordHash(password, user.Password) {
-		return entities.UserAuth{}, nil
+	claims, err := ValidateToken(token)
+	if err != nil {
+		return entities.UserAuth{}, err
+	}
+	user := postgres_repos.GetUserByID(ctx, pool, log, claims.UserID)
+	if user.Id == 0 {
+		return user, fmt.Errorf("user not found")
 	}
 	return user, nil
 }

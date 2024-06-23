@@ -13,6 +13,11 @@ type UserRegisterResponse struct {
 	RefreshToken Token `json:"refresh_token"`
 }
 
+type UserLoginRequest struct {
+	Phone    string `json:"phone"`
+	Password string `json:"password"`
+}
+
 type ErrorResponse struct {
 	Error string `json:"error"`
 }
