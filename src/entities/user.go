@@ -8,14 +8,20 @@ type UserAuth struct {
 	Chats    []int
 }
 
+type UserRegisterRequest struct {
+	Username string `json:"username" validate:"required"`
+	Password string `json:"password" validate:"required"`
+	Phone    string `json:"phone" validate:"required"`
+}
+
 type UserRegisterResponse struct {
 	AccessToken  Token `json:"access_token"`
 	RefreshToken Token `json:"refresh_token"`
 }
 
 type UserLoginRequest struct {
-	Phone    string `json:"phone"`
-	Password string `json:"password"`
+	Phone    string `json:"phone" validate:"required"`
+	Password string `json:"password" validate:"required"`
 }
 
 type ErrorResponse struct {

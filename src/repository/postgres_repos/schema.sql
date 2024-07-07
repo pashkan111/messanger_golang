@@ -8,9 +8,10 @@ CREATE TABLE users (
 
 CREATE TABLE chat (
     chat_id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
+    creator_id INTEGER REFERENCES users (user_id) ON DELETE CASCADE,
+    name VARCHAR(255),
     participants INTEGER[] DEFAULT '{}',
-    deleted BOOLEAN DEFAULT FALSE
+    deleted BOOLEAN DEFAULT false
 );
 
 CREATE TABLE message (

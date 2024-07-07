@@ -3,13 +3,15 @@ package auth
 import (
 	"context"
 	"fmt"
+	"messanger/src/errors/api_errors"
+	"messanger/src/errors/repo_errors"
+	"messanger/src/errors/token_errors"
 
 	"messanger/src/entities"
 	"messanger/src/repository/postgres_repos"
 
 	"errors"
 
-	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/sirupsen/logrus"
 )
@@ -18,30 +20,29 @@ func CreateUser(
 	ctx context.Context,
 	pool *pgxpool.Pool,
 	log *logrus.Logger,
-	user entities.UserAuth,
+	user *entities.UserRegisterRequest,
 ) (*entities.UserTokens, error) {
 	password, err := HashPassword(user.Password)
 	if err != nil {
 		log.Error("Error with hashing password:", err)
-		return nil, err
+		return nil, &api_errors.InternalServerError{}
 	}
 	user.Password = password
 
 	user_id, err := postgres_repos.CreateUser(ctx, pool, log, user)
-	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-		log.Error("Error with creating user:", err)
-		return nil, errors.New(pgErr.Detail)
-	}
 	if err != nil {
-		log.Error("Error with creating user:", err)
-		return nil, err
+		var object_exist_err *repo_errors.ObjectAlreadyExistsError
+		if errors.As(err, &object_exist_err) {
+			return nil, api_errors.BadRequestError{Detail: object_exist_err.Error()}
+		} else {
+			return nil, &api_errors.InternalServerError{}
+		}
 	}
 
 	tokens, err := GenerateTokens(user_id)
 	if err != nil {
 		log.Error("Error with generating tokens:", err)
-		return nil, err
+		return nil, &api_errors.InternalServerError{}
 	}
 	return tokens, nil
 }
@@ -50,19 +51,31 @@ func LoginUser(
 	ctx context.Context,
 	pool *pgxpool.Pool,
 	log *logrus.Logger,
-	login_data entities.UserLoginRequest,
+	login_data *entities.UserLoginRequest,
 ) (*entities.UserTokens, error) {
-	user := postgres_repos.GetUserByPhone(ctx, pool, log, login_data.Phone)
-	if user.Id == 0 {
-		return nil, fmt.Errorf("user with phone %s not found", login_data.Phone)
+	user, err := postgres_repos.GetUserByPhone(
+		ctx,
+		pool,
+		log,
+		login_data.Phone,
+	)
+	if err != nil {
+		var object_not_found_err *repo_errors.ObjectNotFoundError
+		if errors.As(err, &object_not_found_err) {
+			return nil, api_errors.AuthenticationError{
+				Detail: fmt.Sprintf("User with phone %s not found", login_data.Phone),
+			}
+		}
+		return nil, &api_errors.InternalServerError{}
 	}
 	if !CheckPasswordHash(login_data.Password, user.Password) {
-		return nil, fmt.Errorf("incorrect password")
+		return nil, &api_errors.AuthenticationError{Detail: "Invalid password"}
 	}
+
 	tokens, err := GenerateTokens(user.Id)
 	if err != nil {
 		log.Error("Error with generating tokens:", err)
-		return nil, err
+		return nil, &api_errors.InternalServerError{}
 	}
 	return tokens, nil
 }
@@ -72,14 +85,28 @@ func CheckToken(
 	pool *pgxpool.Pool,
 	log *logrus.Logger,
 	token entities.Token,
-) (entities.UserAuth, error) {
+) (*entities.UserAuth, error) {
 	claims, err := ValidateToken(token)
 	if err != nil {
-		return entities.UserAuth{}, err
+		var invalid_token *token_errors.InvalidTokenError
+		if errors.As(err, &invalid_token) {
+			return nil, api_errors.BadRequestError{Detail: invalid_token.Error()}
+		} else {
+			return nil, &api_errors.InternalServerError{}
+		}
 	}
-	user := postgres_repos.GetUserByID(ctx, pool, log, claims.UserID)
+	user, err := postgres_repos.GetUserByID(
+		ctx,
+		pool,
+		log,
+		claims.UserID,
+	)
+	if err != nil {
+		return nil, &api_errors.InternalServerError{}
+	}
 	if user.Id == 0 {
-		return user, fmt.Errorf("user not found")
+		return nil, api_errors.BadRequestError{Detail: fmt.Sprintf("User with id %d not found", claims.UserID)}
 	}
+
 	return user, nil
 }

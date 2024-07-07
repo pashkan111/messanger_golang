@@ -22,7 +22,12 @@ func GetPostgresPool(ctx context.Context, log *logrus.Logger) *pgxpool.Pool {
 		os.Getenv("PG_PORT"),
 		os.Getenv("PG_DATABASE"),
 	)
-	pool, err := pgxpool.Connect(ctx, postgresUrl)
+	config, err := pgxpool.ParseConfig(postgresUrl)
+	if err != nil {
+		log.Error("Error with parsing config", err)
+	}
+
+	pool, err := pgxpool.ConnectConfig(context.Background(), config)
 	if err != nil {
 		log.Error("Error with connecting to DB", err)
 	}

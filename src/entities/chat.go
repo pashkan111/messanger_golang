@@ -1,21 +1,20 @@
 package entities
 
-// import (
-// 	"context"
-// 	"fmt"
-
-// 	"messanger/src/entities"
-// 	"messanger/src/repository/postgres_repos"
-
-// 	"errors"
-
-//	"github.com/jackc/pgconn"
-//	"github.com/jackc/pgx/v4/pgxpool"
-//	"github.com/sirupsen/logrus"
-//
-// )
 type Chat struct {
 	Id           int
+	CreatorId    int
 	Name         string
 	Participants []int
+}
+
+type ChatCreateRequest struct {
+	CreatorId    int   `json:"creator"`
+	Participants []int `json:"participants"`
+}
+
+type ChatCreateResponse struct {
+	Id           int    `json:"id"`
+	CreatorId    int    `json:"creator_id"`
+	Name         string `json:"name"`
+	Participants []int  `json:"participants"`
 }

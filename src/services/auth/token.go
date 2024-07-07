@@ -1,8 +1,8 @@
 package auth
 
 import (
-	"fmt"
 	"messanger/src/entities"
+	"messanger/src/errors/token_errors"
 	"os"
 	"time"
 
@@ -66,9 +66,13 @@ func GenerateRefreshToken(userID int, tokenAssociation uuid.UUID) (entities.Toke
 }
 
 func ValidateToken(tokenString entities.Token) (*Claims, error) {
-	token, err := jwt.ParseWithClaims(string(tokenString), &Claims{}, func(token *jwt.Token) (interface{}, error) {
-		return secretKey, nil
-	})
+	token, err := jwt.ParseWithClaims(
+		string(tokenString),
+		&Claims{},
+		func(token *jwt.Token) (interface{}, error) {
+			return secretKey, nil
+		},
+	)
 
 	if err != nil {
 		return nil, err
@@ -78,7 +82,7 @@ func ValidateToken(tokenString entities.Token) (*Claims, error) {
 		return claims, nil
 	}
 
-	return nil, fmt.Errorf("invalid token")
+	return nil, &token_errors.InvalidTokenError{}
 }
 
 func ValidateTokensPair(accessToken, refreshToken entities.Token) bool {
