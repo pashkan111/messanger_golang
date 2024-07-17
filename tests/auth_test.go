@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRegisterUserHandler(t *testing.T) {
+func TestRegisterUserHandler__Success(t *testing.T) {
 	pool, cleanup, err := SetupTestDB()
 	require.NoError(t, err)
 	defer cleanup()
@@ -30,7 +30,6 @@ func TestRegisterUserHandler(t *testing.T) {
 	phone := "123456"
 	username := "pashtet1"
 	password := "password123"
-	// Create a new HTTP request
 	user := entities.UserRegisterRequest{
 		Username: username,
 		Password: password,
@@ -72,4 +71,84 @@ func TestRegisterUserHandler(t *testing.T) {
 	assert.Equal(t, username, userFromDB.Username)
 	assert.Equal(t, phone, userFromDB.Phone)
 	assert.True(t, auth.CheckPasswordHash(password, userFromDB.Password))
+}
+
+func TestRegisterUserHandler__MissingRequiredFields(t *testing.T) {
+	pool, cleanup, err := SetupTestDB()
+	require.NoError(t, err)
+	defer cleanup()
+
+	log := SetupLogger()
+
+	router := mux.NewRouter()
+	api.InitAuthRoutes(router, pool, log)
+
+	user := entities.UserRegisterRequest{
+		Username: "pashtet1",
+		Password: "password123",
+	}
+	body, _ := json.Marshal(user)
+
+	req, err := http.NewRequest("POST", "/register", bytes.NewBuffer(body))
+	require.NoError(t, err)
+
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+	var response entities.ErrorResponse
+	err = json.NewDecoder(rr.Body).Decode(&response)
+	require.NoError(t, err)
+	assert.Equal(
+		t,
+		"Bad Request: Validation failed on field 'Phone', condition: 'required'",
+		response.Error,
+	)
+}
+
+func TestRegisterUserHandler__UserAlreadyExist(t *testing.T) {
+	pool, cleanup, err := SetupTestDB()
+	require.NoError(t, err)
+	defer cleanup()
+
+	log := SetupLogger()
+
+	router := mux.NewRouter()
+	api.InitAuthRoutes(router, pool, log)
+
+	phone := "123456"
+	username := "pashtet1"
+	password := "password123"
+	user := entities.UserRegisterRequest{
+		Username: username,
+		Password: password,
+		Phone:    phone,
+	}
+	body, _ := json.Marshal(user)
+
+	req, err := http.NewRequest("POST", "/register", bytes.NewBuffer(body))
+	require.NoError(t, err)
+
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	req, err = http.NewRequest("POST", "/register", bytes.NewBuffer(body))
+	require.NoError(t, err)
+
+	rr = httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+
+	var response entities.ErrorResponse
+	err = json.NewDecoder(rr.Body).Decode(&response)
+	require.NoError(t, err)
+	assert.Equal(
+		t,
+		"Bad Request: Object already exists: Key (username)=(pashtet1) already exists.",
+		response.Error,
+	)
 }

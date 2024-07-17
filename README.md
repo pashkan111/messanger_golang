@@ -87,3 +87,10 @@ MESSANGER:
 
 2. Написать круд для чатов
 3. Написать круд для сообщений
+
+
+Есть страница с поиском участников
+Там же можно создать группу (при создании группы, не нужна проверка на наличие такой же группы)
+And it is allowed to write a message any person.
+When message is sent chat creation happens under the hood. If such chat exists
+all messages will be attached to it, else chat will be created

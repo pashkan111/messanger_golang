@@ -6,10 +6,16 @@ func (e OperationError) Error() string {
 	return "Error while performing operation"
 }
 
-type ObjectNotFoundError struct{}
+type ObjectNotFoundError struct {
+	Detail string
+}
 
 func (e ObjectNotFoundError) Error() string {
-	return "Object not found"
+	msg := "Object not found"
+	if e.Detail != "" {
+		msg += ": " + e.Detail
+	}
+	return msg
 }
 
 type ObjectAlreadyExistsError struct {

@@ -2,8 +2,8 @@ package chats
 
 import (
 	"context"
-	"fmt"
 
+	"messanger/src/errors/repo_errors"
 	"messanger/src/repository/postgres_repos"
 
 	"errors"
@@ -13,6 +13,10 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/sirupsen/logrus"
 )
+
+func getChatName() string {
+	return ""
+}
 
 func DeleteChat(
 	ctx context.Context,
@@ -35,21 +39,37 @@ func DeleteChat(
 	return nil
 }
 
-func CreateChat(
+func GetOrCreateChatForDialog(
 	ctx context.Context,
 	pool *pgxpool.Pool,
 	log *logrus.Logger,
-	chat entities.ChatCreateRequest,
-) (entities.Chat, error) {
-	chat.Participants = append(chat.Participants, chat.CreatorId)
-	var chat_created = entities.Chat{
-		CreatorId:    chat.CreatorId,
-		Participants: chat.Participants,
-	}
-	chat_id, err := postgres_repos.CreateChat(ctx, pool, log, chat_created)
+	chat *entities.CreateChatForDialog,
+) (*entities.Chat, error) {
+	chat_id, err := postgres_repos.GetChatIdByParticipants(
+		ctx, pool, log, chat,
+	)
 	if err != nil {
-		return entities.Chat{}, fmt.Errorf("error creating chat: %v", err)
+		if errors.Is(err, repo_errors.ObjectNotFoundError{}) {
+			chat_for_dialog := &entities.ChatForDialog{
+				CreatorId:    chat.CreatorId,
+				ReceiverId:   chat.ReceiverId,
+				Participants: []int{chat.CreatorId, chat.ReceiverId},
+				Name:         getChatName(),
+			}
+			chat_id, err = postgres_repos.CreateChat(
+				ctx, pool, log, chat_for_dialog,
+			)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
 	}
-	chat_created.Id = chat_id
-	return chat_created, nil
+	return &entities.Chat{
+		Id:         chat_id,
+		CreatorId:  chat.CreatorId,
+		ReceiverId: chat.ReceiverId,
+		Name:       getChatName(),
+	}, nil
 }

@@ -88,12 +88,8 @@ func CheckToken(
 ) (*entities.UserAuth, error) {
 	claims, err := ValidateToken(token)
 	if err != nil {
-		var invalid_token *token_errors.InvalidTokenError
-		if errors.As(err, &invalid_token) {
-			return nil, api_errors.BadRequestError{Detail: invalid_token.Error()}
-		} else {
-			return nil, &api_errors.InternalServerError{}
-		}
+		log.Errorf("Error while validating token: %s", err)
+		return nil, err
 	}
 	user, err := postgres_repos.GetUserByID(
 		ctx,
@@ -102,10 +98,12 @@ func CheckToken(
 		claims.UserID,
 	)
 	if err != nil {
-		return nil, &api_errors.InternalServerError{}
+		log.Errorf("Error while getting user by id %d: %s", claims.UserID, err)
+		return nil, err
 	}
 	if user.Id == 0 {
-		return nil, api_errors.BadRequestError{Detail: fmt.Sprintf("User with id %d not found", claims.UserID)}
+		log.Errorf("User with id %d not found", claims.UserID)
+		return nil, token_errors.InvalidTokenError{}
 	}
 
 	return user, nil
