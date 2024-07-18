@@ -131,7 +131,7 @@ func CreateUser(
 		var pg_err *pgconn.PgError
 		if errors.As(err, &pg_err) {
 			if pg_err.Code == "23505" {
-				log.Errorf("error: %s. Detail: %s", pg_err.Error(), pg_err.Detail)
+				log.Infof("error: %s. Detail: %s", pg_err.Error(), pg_err.Detail)
 				return 0, &repo_errors.ObjectAlreadyExistsError{Detail: pg_err.Detail}
 			}
 		} else {

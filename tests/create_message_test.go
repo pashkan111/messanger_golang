@@ -12,15 +12,24 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createUser(pool *pgxpool.Pool, ctx context.Context) (int, error) {
+func createUser(
+	pool *pgxpool.Pool,
+	ctx context.Context,
+	username string,
+	phone string,
+) (int, error) {
 	var user_id int
-	_ = pool.QueryRow(
+	err := pool.QueryRow(
 		ctx,
 		`INSERT INTO users (username, password, phone)
-		VALUES('pashkan', '1234', '9086637')
+		VALUES($1, '1234', $2)
 		RETURNING user_id
 		`,
+		username, phone,
 	).Scan(&user_id)
+	if err != nil {
+		return 0, err
+	}
 	return user_id, nil
 }
 
@@ -31,14 +40,17 @@ func createChat(
 	user2 int,
 ) (int, error) {
 	var chat_id int
-	_ = pool.QueryRow(
+	err := pool.QueryRow(
 		ctx,
-		`INSERT INTO chat (creator_id, receiver_id, participants, name)
-		VALUES($1, $2, '{$1, $2}', 'chat')
+		`INSERT INTO chat (creator_id, participants, name)
+		VALUES($1, ARRAY[$1, $2]::INTEGER[], 'chat')
 		RETURNING chat_id
 		`,
 		user1, user2,
 	).Scan(&chat_id)
+	if err != nil {
+		return 0, err
+	}
 	return chat_id, nil
 }
 
@@ -50,10 +62,12 @@ func TestCreateMessageWithChat__Success(t *testing.T) {
 	log := SetupLogger()
 	ctx := context.Background()
 
-	user1, _ := createUser(pool, ctx)
-	user2, _ := createUser(pool, ctx)
+	user1, _ := createUser(pool, ctx, "pashkan1", "234455")
+	user2, err := createUser(pool, ctx, "pashkan2", "56464")
+	require.NoError(t, err)
 
-	chat_id, _ := createChat(pool, ctx, user1, user2)
+	chat_id, err := createChat(pool, ctx, user1, user2)
+	require.NoError(t, err)
 
 	message_id, err := messages.CreateMessageWithChat(
 		ctx,
@@ -87,8 +101,9 @@ func TestCreateMessageWithoutChat__NoChat(t *testing.T) {
 	log := SetupLogger()
 	ctx := context.Background()
 
-	user1, _ := createUser(pool, ctx)
-	user2, _ := createUser(pool, ctx)
+	user1, _ := createUser(pool, ctx, "pashkan1", "234455")
+	user2, err := createUser(pool, ctx, "pashkan2", "56464")
+	require.NoError(t, err)
 
 	message, err := messages.CreateMessageWithoutChat(
 		ctx,
@@ -126,4 +141,14 @@ func TestCreateMessageWithoutChat__NoChat(t *testing.T) {
 	).Scan(&dialog_exists)
 
 	require.True(t, dialog_exists)
+
+	var message_count int
+	pool.QueryRow(
+		ctx,
+		`SELECT COUNT(*) FROM message 
+		WHERE message_id = $1 AND chat_id = $2 AND author_id = $3`,
+		message.MessageId, message.ChatId, user1,
+	).Scan(&message_count)
+
+	require.Equal(t, 1, message_count)
 }

@@ -27,7 +27,6 @@ func CreateMessage(
 	defer conn.Release()
 
 	var message_id int
-
 	err = conn.QueryRow(
 		ctx,
 		`INSERT INTO message (text, chat_id, author_id)
@@ -39,15 +38,17 @@ func CreateMessage(
 		message.CreatorId,
 	).Scan(&message_id)
 
-	var pg_err *pgconn.PgError
-	if errors.As(err, &pg_err) {
-		if pg_err.Code == "23503" {
-			log.Errorf("error: %s. Detail: %s", pg_err.Error(), pg_err.Detail)
-			return 0, repo_errors.ObjectNotFoundError{}
+	if err != nil {
+		var pg_err *pgconn.PgError
+		if errors.As(err, &pg_err) {
+			if pg_err.Code == "23503" {
+				log.Errorf("error: %s. Detail: %s", pg_err.Error(), pg_err.Detail)
+				return 0, repo_errors.ObjectNotFoundError{}
+			}
+		} else {
+			log.Error("Error creating message: ", err.Error())
+			return 0, repo_errors.OperationError{}
 		}
-	} else {
-		log.Error("Error creating message: ", err)
-		return 0, repo_errors.OperationError{}
 	}
 	return message_id, nil
 }

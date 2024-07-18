@@ -35,10 +35,12 @@ func CreateChat(
 	err = transaction.QueryRow(
 		ctx,
 		`INSERT INTO chat (creator_id, name, participants)
-		VALUES ($1, $2, $3);`,
+		VALUES ($1, $2, $3)
+		RETURNING chat_id;`,
 		chat.CreatorId, chat.Name, chat.Participants,
 	).Scan(&chatID)
 	if err != nil {
+		transaction.Rollback(ctx)
 		var pg_err *pgconn.PgError
 		if errors.As(err, &pg_err) {
 			if pg_err.Code == "23503" {
@@ -60,6 +62,7 @@ func CreateChat(
 	)
 	if err != nil {
 		log.Error("Error creating dialog: ", err)
+		transaction.Rollback(ctx)
 		return 0, &repo_errors.OperationError{}
 	}
 
@@ -67,9 +70,14 @@ func CreateChat(
 		ctx,
 		`UPDATE users
  		SET chats = chats || $1
- 		WHERE user_id IN $2;`,
+ 		WHERE user_id = ANY($2);`,
 		chatID, chat.Participants,
 	)
+	if err != nil {
+		log.Error("Error updating users: ", err)
+		transaction.Rollback(ctx)
+		return 0, &repo_errors.OperationError{}
+	}
 
 	err = transaction.Commit(ctx)
 	if err != nil {
@@ -106,6 +114,7 @@ func GetChatIdByParticipants(
 	).Scan(&chatID)
 	if err != nil {
 		if err.Error() == pgx.ErrNoRows.Error() {
+			log.Info("Chat Not Found: ", err)
 			return 0, &repo_errors.ObjectNotFoundError{}
 		}
 		log.Error("Error obtaining chat: ", err)

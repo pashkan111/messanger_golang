@@ -49,7 +49,8 @@ func GetOrCreateChatForDialog(
 		ctx, pool, log, chat,
 	)
 	if err != nil {
-		if errors.Is(err, repo_errors.ObjectNotFoundError{}) {
+		var not_found_err *repo_errors.ObjectNotFoundError
+		if errors.As(err, &not_found_err) {
 			chat_for_dialog := &entities.ChatForDialog{
 				CreatorId:    chat.CreatorId,
 				ReceiverId:   chat.ReceiverId,

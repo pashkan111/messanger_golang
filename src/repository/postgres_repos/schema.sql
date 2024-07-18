@@ -1,9 +1,9 @@
 create TYPE chat_type as ENUM (
     'group',
-    'dialog',
+    'dialog'
 );
 
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     user_id SERIAL PRIMARY KEY,
     username VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
@@ -11,7 +11,7 @@ CREATE TABLE users (
     chats INTEGER[] DEFAULT '{}'
 );
 
-CREATE TABLE chat (
+CREATE TABLE IF NOT EXISTS chat (
     chat_id SERIAL PRIMARY KEY,
     creator_id INTEGER REFERENCES users (user_id) ON DELETE CASCADE,
     type chat_type NOT NULL DEFAULT 'dialog',
@@ -20,7 +20,7 @@ CREATE TABLE chat (
     deleted BOOLEAN DEFAULT false
 );
 
-CREATE TABLE message (
+CREATE TABLE IF NOT EXISTS message (
     message_id SERIAL PRIMARY KEY,
     text TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
@@ -28,7 +28,7 @@ CREATE TABLE message (
     author_id INTEGER REFERENCES users (user_id) ON DELETE CASCADE
 );
 
-CREATE TABLE dialog (
+CREATE TABLE IF NOT EXISTS dialog (
     chat_id int,
     creator_id INTEGER REFERENCES chat (chat_id) ON DELETE CASCADE,
     participant_id INTEGER REFERENCES users (user_id) ON DELETE CASCADE,
