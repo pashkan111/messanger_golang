@@ -6,6 +6,9 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
+
+	"github.com/go-redis/redis/v8"
 
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/sirupsen/logrus"
@@ -99,4 +102,29 @@ func SetupLogger() *logrus.Logger {
 
 	log.SetLevel(logrus.InfoLevel)
 	return log
+}
+
+func SetupTestRedisPool(ctx context.Context, log *logrus.Logger) (*redis.Client, func(), error) {
+	REDIS_HOST_TEST := "localhost"
+	REDIS_PORT_TEST := 6380
+	rdb := redis.NewClient(&redis.Options{
+		Addr:         fmt.Sprintf("%s:%d", REDIS_HOST_TEST, REDIS_PORT_TEST),
+		Password:     "",
+		DB:           0,
+		PoolSize:     10,
+		MinIdleConns: 3,
+		PoolTimeout:  30 * time.Second,
+		IdleTimeout:  5 * time.Minute,
+	})
+
+	_, err := rdb.Ping(ctx).Result()
+	if err != nil {
+		return nil, nil, fmt.Errorf("could not connect to Redis: %v", err)
+	}
+
+	cleanup := func() {
+		rdb.FlushAll(ctx)
+		rdb.Close()
+	}
+	return rdb, cleanup, nil
 }

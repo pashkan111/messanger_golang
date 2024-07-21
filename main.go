@@ -18,6 +18,7 @@ func main() {
 	defer cancel()
 	log := utils.GetLogger()
 	postgres_pool := utils.GetPostgresPool(ctx, log)
+	redis_pool := utils.GetRedisPool(ctx, log)
 
 	router := mux.NewRouter()
 	api.InitAuthRoutes(router, postgres_pool, log)
