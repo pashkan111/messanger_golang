@@ -23,3 +23,8 @@ type MessageForDialog struct {
 	Text       string
 	ChatId     int
 }
+
+type UpdateMessage struct {
+	MessageId int
+	Text      string
+}

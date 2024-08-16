@@ -7,6 +7,7 @@ import (
 
 	"messanger/src/api"
 	"messanger/src/utils"
+	"messanger/src/ws"
 
 	"net/http"
 
@@ -18,11 +19,13 @@ func main() {
 	defer cancel()
 	log := utils.GetLogger()
 	postgres_pool := utils.GetPostgresPool(ctx, log)
-	redis_pool := utils.GetRedisPool(ctx, log)
+	// redis_pool := utils.GetRedisPool(ctx, log)
 
 	router := mux.NewRouter()
 	api.InitAuthRoutes(router, postgres_pool, log)
-	// api.InitChatRoutes(router, postgres_pool, log)
+	api.InitMessageRoutes(router, postgres_pool, log)
+
+	ws.InitChatRoutes(router, postgres_pool, log)
 
 	fmt.Println("Server is running on port 8080")
 	srv := &http.Server{

@@ -52,3 +52,34 @@ func CreateMessage(
 	}
 	return message_id, nil
 }
+
+func UpdateMessage(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	log *logrus.Logger,
+	message message_entities.UpdateMessage,
+) error {
+	conn, err := pool.Acquire(ctx)
+
+	if err != nil {
+		log.Error("Error with acquiring connection:", err)
+		return repo_errors.OperationError{}
+	}
+	defer conn.Release()
+
+	_, err = conn.Exec(
+		ctx,
+		`UPDATE message
+		SET text = $1
+		WHERE message_id = $2
+		`,
+		message.Text,
+		message.MessageId,
+	)
+
+	if err != nil {
+		log.Error("Error updating message: ", err.Error())
+		return repo_errors.OperationError{}
+	}
+	return nil
+}
