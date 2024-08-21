@@ -5,10 +5,10 @@ import (
 )
 
 type MessageUpdatedEventRequest struct {
-	RequestEventType events.ClientRequestEventType `json:"request_event_type" validate:"required"`
-	MessageId        int                           `json:"message_id"`
-	Text             string                        `json:"text" validate:"required"`
-	ChatId           int                           `json:"chat_id"`
+	RequestEventType events.ClientRequestEvent `json:"request_event_type" validate:"required"`
+	MessageId        int                       `json:"message_id" validate:"required"`
+	Text             string                    `json:"text" validate:"required"`
+	ChatId           int                       `json:"chat_id" validate:"required"`
 }
 
 type MessageUpdatedEventResponse struct {

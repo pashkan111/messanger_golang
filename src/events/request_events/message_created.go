@@ -7,12 +7,12 @@ import (
 )
 
 type MessageCreatedEventRequest struct {
-	RequestEventType events.ClientRequestEventType `json:"request_event_type" validate:"required"`
-	MessageUUID      uuid.UUID                     `json:"message_uuid" validate:"required"`
-	CreatorId        int                           `json:"creator_id" validate:"required"`
-	ReceiverId       int                           `json:"receiver_id" validate:"required"`
-	Text             string                        `json:"text" validate:"required"`
-	ChatId           int                           `json:"chat_id"`
+	RequestEventType events.ClientRequestEvent `json:"request_event_type" validate:"required"`
+	MessageUUID      uuid.UUID                 `json:"message_uuid" validate:"required"`
+	CreatorId        int                       `json:"creator_id" validate:"required"`
+	ReceiverId       int                       `json:"receiver_id" validate:"required"`
+	Text             string                    `json:"text" validate:"required"`
+	ChatId           int                       `json:"chat_id" validate:"required"`
 }
 
 type MessageCreatedEventResponse struct {

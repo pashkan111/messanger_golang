@@ -1,10 +1,14 @@
 package state_machine
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"messanger/src/errors/state_machine_errors"
 	"messanger/src/events/request_events"
+
+	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/sirupsen/logrus"
 )
 
 type MessangerStateMachineInterface interface {
@@ -34,7 +38,12 @@ func (m *MessangerStateMachine) changeState() {
 	}
 }
 
-func (m *MessangerStateMachine) HandleEvent(request_data []byte) (interface{}, error) {
+func (m *MessangerStateMachine) HandleEvent(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	log *logrus.Logger,
+	request_data []byte,
+) (interface{}, error) {
 	if !m.IsInitialized {
 		m.Init()
 	}
@@ -50,7 +59,12 @@ func (m *MessangerStateMachine) HandleEvent(request_data []byte) (interface{}, e
 	}
 
 	handler := RequestEventHandlers[base_event_data.RequestEventType]
-	result, change_state, err := handler(request_data)
+	result, change_state, err := handler(
+		ctx,
+		pool,
+		log,
+		request_data,
+	)
 	if err != nil {
 		if errors.Is(err, state_machine_errors.ErrMashineFinishedError) {
 			m.IsFinished = true

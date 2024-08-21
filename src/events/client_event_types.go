@@ -1,13 +1,15 @@
 package events
 
-type ClientRequestEventType string
+type ClientRequestEvent string
 
 const (
-	StartRequestEventType          ClientRequestEventType = "START"
-	MessageSentRequestEventType    ClientRequestEventType = "MESSAGE_SENT"
-	MessageUpdatedRequestEventType ClientRequestEventType = "MESSAGE_UPDATED"
-	MessageDeletedRequestEventType ClientRequestEventType = "MESSAGE_DELETED"
-	FinishRequestEventType         ClientRequestEventType = "FINISH"
+	StartRequestEvent         ClientRequestEvent = "START"
+	GetChatsRequestEvent      ClientRequestEvent = "GET_CHATS"
+	GetMessagesRequestEvent   ClientRequestEvent = "GET_MESSAGES"
+	CreateMessageRequestEvent ClientRequestEvent = "CREATE_MESSAGE"
+	UpdateMessageRequestEvent ClientRequestEvent = "UPDATE_MESSAGE"
+	DeleteMessageRequestEvent ClientRequestEvent = "DELETE_MESSAGE"
+	RemoveChatRequestEvent    ClientRequestEvent = "REMOVE_CHAT"
 )
 
 type ClientResponseEventStatus string

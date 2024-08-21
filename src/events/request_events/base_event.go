@@ -5,5 +5,5 @@ import (
 )
 
 type BaseEventRequest struct {
-	RequestEventType events.ClientRequestEventType `json:"request_event_type"`
+	RequestEventType events.ClientRequestEvent `json:"request_event_type"`
 }

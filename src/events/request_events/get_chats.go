@@ -6,11 +6,12 @@ import (
 
 // Event that is passed when client connects to server (in chat)
 
-type FinishEventRequest struct {
-	RequestEventType events.ClientRequestEventType `json:"request_event_type" validate:"required"`
+type GetChatsEventRequest struct {
+	RequestEventType events.ClientRequestEvent `json:"request_event_type" validate:"required"`
 }
 
-type FinishEventResponse struct {
+type GetChatsEventResponse struct {
 	EventType events.EventType                 `json:"event_type"`
 	Status    events.ClientResponseEventStatus `json:"status"`
+	// TODO create chat entity and return here
 }

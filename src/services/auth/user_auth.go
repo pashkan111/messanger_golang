@@ -80,7 +80,7 @@ func LoginUser(
 	return tokens, nil
 }
 
-func CheckToken(
+func GetUserByToken(
 	ctx context.Context,
 	pool *pgxpool.Pool,
 	log *logrus.Logger,
