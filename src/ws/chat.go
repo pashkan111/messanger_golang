@@ -5,7 +5,7 @@ import (
 	"messanger/src/entities"
 	"net/http"
 
-	"strconv"
+	// "strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -36,9 +36,9 @@ func handleConnections(pool *pgxpool.Pool, log *logrus.Logger) http.HandlerFunc 
 			ws.Close()
 		}
 
-		vars := mux.Vars(r)
-		chat_id := vars["chat_id"]
-		chat_id_int, err := strconv.Atoi(chat_id)
+		// vars := mux.Vars(r)
+		// chat_id := vars["chat_id"]
+		// chat_id_int, err := strconv.Atoi(chat_id)
 		if err != nil {
 			resp := entities.ErrorResponse{Error: "Chat id is not a number"}
 			data, _ := json.Marshal(resp)

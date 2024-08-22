@@ -2,97 +2,19 @@ package postgres_repos
 
 import (
 	"context"
-	"errors"
-	"messanger/src/entities"
+	"messanger/src/entities/dialog_entities"
 	"messanger/src/errors/repo_errors"
 
-	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/sirupsen/logrus"
 )
 
-func CreateChat(
+func GetOrCreateDialog(
 	ctx context.Context,
 	pool *pgxpool.Pool,
 	log *logrus.Logger,
-	chat *entities.ChatForDialog,
-) (int, error) {
-	conn, err := pool.Acquire(ctx)
-
-	if err != nil {
-		log.Error("Error with acquiring connection:", err)
-		return 0, repo_errors.OperationError{}
-	}
-	defer conn.Release()
-	transaction, err := conn.Begin(ctx)
-	if err != nil {
-		log.Error("Error with beginning transaction:", err)
-		return 0, repo_errors.OperationError{}
-	}
-
-	var chatID int
-	err = transaction.QueryRow(
-		ctx,
-		`INSERT INTO chat (creator_id, name, participants)
-		VALUES ($1, $2, $3)
-		RETURNING chat_id;`,
-		chat.CreatorId, chat.Name, chat.Participants,
-	).Scan(&chatID)
-	if err != nil {
-		transaction.Rollback(ctx)
-		var pg_err *pgconn.PgError
-		if errors.As(err, &pg_err) {
-			if pg_err.Code == "23503" {
-				log.Errorf("error: %s. Detail: %s", pg_err.Error(), pg_err.Detail)
-				return 0, repo_errors.ObjectNotFoundError{}
-			}
-		} else {
-			log.Error("Error creating chat: ", err)
-			return 0, repo_errors.OperationError{}
-		}
-	}
-
-	_, err = transaction.Exec(
-		ctx,
-		`INSERT INTO dialog (chat_id, creator_id, participant_id)
-		VALUES($1, $2, $3);
-		`,
-		chatID, chat.CreatorId, chat.ReceiverId,
-	)
-	if err != nil {
-		log.Error("Error creating dialog: ", err)
-		transaction.Rollback(ctx)
-		return 0, &repo_errors.OperationError{}
-	}
-
-	_, err = transaction.Exec(
-		ctx,
-		`UPDATE users
- 		SET chats = chats || $1
- 		WHERE user_id = ANY($2);`,
-		chatID, chat.Participants,
-	)
-	if err != nil {
-		log.Error("Error updating users: ", err)
-		transaction.Rollback(ctx)
-		return 0, &repo_errors.OperationError{}
-	}
-
-	err = transaction.Commit(ctx)
-	if err != nil {
-		log.Error("Error committing transaction: ", err)
-		return 0, &repo_errors.OperationError{}
-	}
-
-	return chatID, err
-}
-
-func GetChatIdByParticipants(
-	ctx context.Context,
-	pool *pgxpool.Pool,
-	log *logrus.Logger,
-	chat *entities.CreateChatForDialog,
+	dialog dialog_entities.DialogCreate,
 ) (int, error) {
 	conn, err := pool.Acquire(ctx)
 
@@ -102,26 +24,127 @@ func GetChatIdByParticipants(
 	}
 	defer conn.Release()
 
-	var chatID int
+	var dialogId int
 	err = conn.QueryRow(
 		ctx,
-		`SELECT chat_id
+		`
+		SELECT dialog_id
 		FROM dialog
-		WHERE creator_id = $1 AND participant_id = $2
-		OR creator_id = $2 AND participant_id = $1
+		WHERE 
+			(creator_id = $1 AND receiver_id = $2) OR
+			(creator_id = $2 AND receiver_id = $1)
 		`,
-		chat.CreatorId, chat.ReceiverId,
-	).Scan(&chatID)
+		dialog.CreatorId, dialog.ReceiverId,
+	).Scan(&dialogId)
+
 	if err != nil {
-		if err.Error() == pgx.ErrNoRows.Error() {
-			log.Info("Chat Not Found: ", err)
-			return 0, &repo_errors.ObjectNotFoundError{}
+		if err.Error() != pgx.ErrNoRows.Error() {
+			log.Error("Error obtaining dialog: ", err)
+			return 0, &repo_errors.OperationError{}
+		} else {
+			dialogId = 0
 		}
-		log.Error("Error obtaining chat: ", err)
-		return 0, &repo_errors.OperationError{}
 	}
-	return chatID, err
+
+	if dialogId == 0 {
+		err = conn.QueryRow(
+			ctx,
+			`
+			INSERT INTO dialog (creator_id, receiver_id, name)
+			VALUES ($1, $2, $3)
+			RETURNING dialog_id;
+			`,
+			dialog.CreatorId, dialog.ReceiverId, dialog.Name,
+		).Scan(&dialogId)
+
+		if err != nil {
+			log.Error("Error creating dialog: ", err)
+			return 0, &repo_errors.OperationError{}
+		}
+	}
+	return dialogId, err
 }
+
+func GetDialogsByUserId(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	log *logrus.Logger,
+	user_id int,
+) ([]dialog_entities.DialogForListing, error) {
+	var dialogs []dialog_entities.DialogForListing
+
+	conn, err := pool.Acquire(ctx)
+	if err != nil {
+		log.Error("Error with acquiring connection:", err)
+		return nil, err
+	}
+	defer conn.Release()
+
+	rows, err := conn.Query(
+		ctx,
+		`
+		SELECT 
+			dialog_id, 
+			name
+		FROM 
+			dialog
+		WHERE 
+			creator_id = $1 
+			OR receiver_id = $1;
+		`,
+		user_id,
+	)
+	if err != nil {
+		log.Error("Error with acquiring connection:", err)
+		return nil, err
+	}
+
+	for rows.Next() {
+		var dialog dialog_entities.DialogForListing
+		err := rows.Scan(&dialog.Id, &dialog.Name)
+		if err != nil {
+			log.Errorf("row scan failed: %v\n", err)
+			return nil, err
+		}
+		dialogs = append(dialogs, dialog)
+	}
+	return dialogs, nil
+}
+
+// func GetChatIdByParticipants(
+// 	ctx context.Context,
+// 	pool *pgxpool.Pool,
+// 	log *logrus.Logger,
+// 	chat *entities.CreateChatForDialog,
+// ) (int, error) {
+// 	conn, err := pool.Acquire(ctx)
+
+// 	if err != nil {
+// 		log.Error("Error with acquiring connection:", err)
+// 		return 0, repo_errors.OperationError{}
+// 	}
+// 	defer conn.Release()
+
+// 	var chatID int
+// 	err = conn.QueryRow(
+// 		ctx,
+// 		`SELECT chat_id
+// 		FROM dialog
+// 		WHERE creator_id = $1 AND participant_id = $2
+// 		OR creator_id = $2 AND participant_id = $1
+// 		`,
+// 		chat.CreatorId, chat.ReceiverId,
+// 	).Scan(&chatID)
+// 	if err != nil {
+// 		if err.Error() == pgx.ErrNoRows.Error() {
+// 			log.Info("Chat Not Found: ", err)
+// 			return 0, &repo_errors.ObjectNotFoundError{}
+// 		}
+// 		log.Error("Error obtaining chat: ", err)
+// 		return 0, &repo_errors.OperationError{}
+// 	}
+// 	return chatID, err
+// }
 
 // func GetChatsByUserId(
 // 	ctx context.Context,

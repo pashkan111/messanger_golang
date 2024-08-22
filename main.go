@@ -23,7 +23,7 @@ func main() {
 
 	router := mux.NewRouter()
 	api.InitAuthRoutes(router, postgres_pool, log)
-	api.InitMessageRoutes(router, postgres_pool, log)
+	// api.InitMessageRoutes(router, postgres_pool, log)
 
 	ws.InitChatRoutes(router, postgres_pool, log)
 

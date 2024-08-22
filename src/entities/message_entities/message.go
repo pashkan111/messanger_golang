@@ -28,3 +28,9 @@ type UpdateMessage struct {
 	MessageId int
 	Text      string
 }
+
+type MessageByDialog struct {
+	TextOfLastMessage     string
+	AuthorIdOfLastMessage int
+	UnreadedCount         int
+}

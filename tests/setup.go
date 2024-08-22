@@ -96,7 +96,8 @@ func SetupTestDB() (*pgxpool.Pool, func(), error) {
 
 func SetupLogger() *logrus.Logger {
 	log := logrus.New()
-	log.SetFormatter(&logrus.JSONFormatter{})
+	log.SetFormatter(&logrus.JSONFormatter{PrettyPrint: true})
+	log.SetReportCaller(true)
 
 	log.SetOutput(os.Stdout)
 

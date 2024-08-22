@@ -1,8 +1,3 @@
-create TYPE chat_type as ENUM (
-    'group',
-    'dialog'
-);
-
 CREATE TABLE IF NOT EXISTS users (
     user_id SERIAL PRIMARY KEY,
     username VARCHAR(255) UNIQUE NOT NULL,
@@ -11,26 +6,28 @@ CREATE TABLE IF NOT EXISTS users (
     chats INTEGER[] DEFAULT '{}'
 );
 
-CREATE TABLE IF NOT EXISTS chat (
-    chat_id SERIAL PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS dialog (
+    dialog_id BIGSERIAL UNIQUE,
     creator_id INTEGER REFERENCES users (user_id) ON DELETE CASCADE,
-    type chat_type NOT NULL DEFAULT 'dialog',
+    receiver_id INTEGER REFERENCES users (user_id) ON DELETE CASCADE,
     name VARCHAR(255),
-    participants INTEGER[] DEFAULT '{}',
-    deleted BOOLEAN DEFAULT false
+    CONSTRAINT dialog_creator_participant_pk PRIMARY KEY (creator_id, receiver_id)
 );
 
-CREATE TABLE IF NOT EXISTS message (
-    message_id SERIAL PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS dialog_message (
+    dialog_message_id SERIAL PRIMARY KEY,
     text TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    chat_id INTEGER REFERENCES chat (chat_id) ON DELETE CASCADE,
+    is_read BOOLEAN DEFAULT false,
+    dialog_id INTEGER REFERENCES dialog (dialog_id) ON DELETE CASCADE,
     author_id INTEGER REFERENCES users (user_id) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS dialog (
-    chat_id int,
-    creator_id INTEGER REFERENCES chat (chat_id) ON DELETE CASCADE,
-    participant_id INTEGER REFERENCES users (user_id) ON DELETE CASCADE,
-    CONSTRAINT dialog_creator_participant_pk PRIMARY KEY (creator_id, participant_id)
-);
+-- CREATE TABLE IF NOT EXISTS chat (
+--     chat_id SERIAL PRIMARY KEY,
+--     creator_id INTEGER REFERENCES users (user_id) ON DELETE CASCADE,
+--     type chat_type NOT NULL DEFAULT 'dialog',
+--     name VARCHAR(255),
+--     participants INTEGER[] DEFAULT '{}',
+--     deleted BOOLEAN DEFAULT false
+-- );
