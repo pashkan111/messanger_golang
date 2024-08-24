@@ -22,11 +22,14 @@ type UserTest struct {
 }
 
 type MessageDialogTest struct {
-	Id       int
-	DialogId int
-	AuthorId int
-	Text     string
-	IsRead   bool
+	Id          int
+	DialogId    int
+	AuthorId    int
+	Text        string
+	IsRead      bool
+	MessageType string
+	Link        string
+	CreatedAt   string
 }
 
 func GetTestUser(pool *pgxpool.Pool, user UserTest) UserTest {
@@ -53,10 +56,18 @@ func GetTestDialog(pool *pgxpool.Pool, dialog DialogTest) DialogTest {
 
 func GetTestMessage(pool *pgxpool.Pool, message MessageDialogTest) (MessageDialogTest, error) {
 	err := pool.QueryRow(context.Background(),
-		`INSERT INTO dialog_message (text, is_read, dialog_id, author_id) 
-		VALUES ($1, $2, $3, $4) 
+		`INSERT INTO dialog_message (
+			text, is_read, dialog_id, author_id, message_type, link, created_at
+		) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7) 
 		RETURNING dialog_message_id`,
-		message.Text, message.IsRead, message.DialogId, message.AuthorId,
+		message.Text,
+		message.IsRead,
+		message.DialogId,
+		message.AuthorId,
+		message.MessageType,
+		message.Link,
+		message.CreatedAt,
 	).Scan(&message.Id)
 
 	return message, err

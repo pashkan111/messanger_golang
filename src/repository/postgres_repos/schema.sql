@@ -1,3 +1,5 @@
+CREATE TYPE message_type AS ENUM ('text', 'image');
+
 CREATE TABLE IF NOT EXISTS users (
     user_id SERIAL PRIMARY KEY,
     username VARCHAR(255) UNIQUE NOT NULL,
@@ -19,6 +21,8 @@ CREATE TABLE IF NOT EXISTS dialog_message (
     text TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     is_read BOOLEAN DEFAULT false,
+    message_type message_type DEFAULT 'text',
+    link VARCHAR(255),
     dialog_id INTEGER REFERENCES dialog (dialog_id) ON DELETE CASCADE,
     author_id INTEGER REFERENCES users (user_id) ON DELETE CASCADE
 );

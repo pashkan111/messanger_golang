@@ -1,3 +1,4 @@
 DROP TABLE IF EXISTS dialog_message;
 DROP TABLE IF EXISTS dialog;
 DROP TABLE IF EXISTS users;
+DROP TYPE IF EXISTS message_type;

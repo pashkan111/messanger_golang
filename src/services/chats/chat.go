@@ -3,6 +3,7 @@ package chats
 import (
 	"context"
 	"errors"
+	"messanger/src/entities"
 	"messanger/src/entities/message_entities"
 
 	"messanger/src/entities/dialog_entities"
@@ -56,7 +57,7 @@ func GetDialogsForListing(
 		dialog_ids = append(dialog_ids, dialog.Id)
 	}
 
-	messages, err := postgres_repos.GetLastMessageByDialogId(ctx, pool, log, dialog_ids)
+	messages, err := postgres_repos.GetLastMessageByDialogId(ctx, pool, log, dialog_ids, user_id)
 	if err != nil {
 		log.Error("Error with getting last messages by dialog id:", err)
 		return nil, err
@@ -79,11 +80,30 @@ func GetDialogsForListing(
 			TextOfLastMessage:     message.TextOfLastMessage,
 			AuthorIdOfLastMessage: message.AuthorIdOfLastMessage,
 			UnreadedCount:         message.UnreadedCount,
+			MessageType:           message.MessageType,
+			Link:                  message.Link,
 		}
 		chats = append(chats, dialog)
 	}
 
 	return chats, nil
+}
+
+func GetMessagesForDialog(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	log *logrus.Logger,
+	dialog_id int,
+	query_params entities.QueryParams,
+) ([]message_entities.MessageForDialog, error) {
+	messages, err := postgres_repos.GetMessagesByDialogId(
+		ctx, pool, log, dialog_id, query_params,
+	)
+	if err != nil {
+		log.Error("Error with getting messages for dialog:", err)
+		return nil, err
+	}
+	return messages, nil
 }
 
 func DeleteChat(

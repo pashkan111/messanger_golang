@@ -10,6 +10,7 @@ type GetMessagesEventRequest struct {
 	RequestEventType events.ClientRequestEvent `json:"request_event_type" validate:"required"`
 	ChatId           int                       `json:"chat_id" validate:"required"`
 	Offset           int                       `json:"offset"`
+	Limit            int                       `json:"limit"`
 }
 
 type GetMessagesEventResponse struct {
