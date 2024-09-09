@@ -4,13 +4,6 @@ import (
 	"messanger/src/entities/message_entities"
 )
 
-// type Chat struct {
-// 	Id         int
-// 	CreatorId  int
-// 	ReceiverId int
-// 	Name       string
-// }
-
 type DialogCreate struct {
 	CreatorId  int
 	ReceiverId int

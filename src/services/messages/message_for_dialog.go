@@ -1,16 +1,33 @@
 package messages
 
-// import (
-// 	"context"
+import (
+	"context"
 
-// 	"messanger/src/entities"
-// 	"messanger/src/entities/message_entities"
-// 	"messanger/src/repository/postgres_repos"
-// 	"messanger/src/services/chats"
+	"messanger/src/entities/message_entities"
+	"messanger/src/events/request_events"
+	"messanger/src/repository/postgres_repos"
 
-// 	"github.com/jackc/pgx/v4/pgxpool"
-// 	"github.com/sirupsen/logrus"
-// )
+	// "messanger/src/services/chats"
+
+	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/sirupsen/logrus"
+)
+
+func GetMessagesForDialog(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	log *logrus.Logger,
+	event request_events.GetMessagesEventRequest,
+) ([]message_entities.MessageForDialog, error) {
+	messages, err := postgres_repos.GetMessagesByDialogId(
+		ctx, pool, log, event,
+	)
+	if err != nil {
+		log.Error("Error with getting messages for dialog:", err)
+		return nil, err
+	}
+	return messages, nil
+}
 
 // func CreateMessageWithChat(
 // 	ctx context.Context,

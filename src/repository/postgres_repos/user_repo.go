@@ -20,14 +20,14 @@ func GetUserByPhone(
 	pool *pgxpool.Pool,
 	log *logrus.Logger,
 	phone string,
-) (*entities.UserAuth, error) {
-	var user entities.UserAuth
+) (*entities.User, error) {
+	var user entities.User
 	var chats pgtype.Int4Array
 
 	conn, err := pool.Acquire(ctx)
 	if err != nil {
 		log.Error("Error when acquiring connection:", err)
-		return nil, repo_errors.OperationError{}
+		return nil, repo_errors.ErrOperationError
 	}
 	defer conn.Release()
 
@@ -47,10 +47,10 @@ func GetUserByPhone(
 	if err != nil {
 		if err.Error() == pgx.ErrNoRows.Error() {
 			log.Errorf("error: %s. Detail: %s=%s", err.Error(), "phone", phone)
-			return nil, &repo_errors.ObjectNotFoundError{}
+			return nil, repo_errors.ErrObjectNotFound
 		}
 		log.Error("Error when getting user by phone:", err)
-		return nil, repo_errors.OperationError{}
+		return nil, repo_errors.ErrOperationError
 	}
 
 	if chats.Status == pgtype.Present {
@@ -67,14 +67,14 @@ func GetUserByID(
 	pool *pgxpool.Pool,
 	log *logrus.Logger,
 	id int,
-) (*entities.UserAuth, error) {
-	var user entities.UserAuth
+) (*entities.User, error) {
+	var user entities.User
 	var chats pgtype.Int4Array
 
 	conn, err := pool.Acquire(ctx)
 	if err != nil {
 		log.Error("Error with acquiring connection:", err)
-		return nil, repo_errors.OperationError{}
+		return nil, repo_errors.ErrOperationError
 	}
 	defer conn.Release()
 
@@ -90,8 +90,11 @@ func GetUserByID(
 		&user.Phone,
 	)
 	if err != nil {
+		if err.Error() == pgx.ErrNoRows.Error() {
+			return nil, repo_errors.ErrObjectNotFound
+		}
 		log.Error("Error with getting user by id:", err)
-		return nil, repo_errors.OperationError{}
+		return nil, repo_errors.ErrOperationError
 	}
 
 	if chats.Status == pgtype.Present {
@@ -112,7 +115,7 @@ func CreateUser(
 	conn, err := pool.Acquire(ctx)
 	if err != nil {
 		log.Error("Error with acquiring connection:", err)
-		return 0, repo_errors.OperationError{}
+		return 0, repo_errors.ErrOperationError
 	}
 	defer conn.Release()
 
@@ -132,11 +135,11 @@ func CreateUser(
 		if errors.As(err, &pg_err) {
 			if pg_err.Code == "23505" {
 				log.Infof("error: %s. Detail: %s", pg_err.Error(), pg_err.Detail)
-				return 0, &repo_errors.ObjectAlreadyExistsError{Detail: pg_err.Detail}
+				return 0, repo_errors.ErrObjectAlreadyExists{Detail: pg_err.Detail}
 			}
 		} else {
 			log.Error("Error creating user: ", err)
-			return 0, repo_errors.OperationError{}
+			return 0, repo_errors.ErrOperationError
 		}
 	}
 	return userId, nil

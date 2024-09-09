@@ -10,6 +10,10 @@ type CreateChatEventRequest struct {
 	RequestEventType events.ClientRequestEvent `json:"request_event_type" validate:"required"`
 }
 
+func (b CreateChatEventRequest) GetEventType() events.ClientRequestEvent {
+	return b.RequestEventType
+}
+
 type CreateChatEventResponse struct {
 	EventType events.EventType                 `json:"event_type"`
 	Status    events.ClientResponseEventStatus `json:"status"`

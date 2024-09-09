@@ -23,6 +23,10 @@ type MessageCreatedEventRequest struct {
 	ChatId           int                       `json:"chat_id" validate:"required"`
 }
 
+func (e MessageCreatedEventRequest) GetEventType() events.ClientRequestEvent {
+	return e.RequestEventType
+}
+
 type MessageCreatedEventResponse struct {
 	MessageId   int                              `json:"message_id"`
 	MessageUUID uuid.UUID                        `json:"message_uuid"`

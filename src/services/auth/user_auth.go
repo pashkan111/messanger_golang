@@ -2,10 +2,8 @@ package auth
 
 import (
 	"context"
-	"fmt"
-	"messanger/src/errors/api_errors"
 	"messanger/src/errors/repo_errors"
-	"messanger/src/errors/token_errors"
+	"messanger/src/errors/service_errors"
 
 	"messanger/src/entities"
 	"messanger/src/repository/postgres_repos"
@@ -25,24 +23,19 @@ func CreateUser(
 	password, err := HashPassword(user.Password)
 	if err != nil {
 		log.Error("Error with hashing password:", err)
-		return nil, &api_errors.InternalServerError{}
+		return nil, err
 	}
 	user.Password = password
 
 	user_id, err := postgres_repos.CreateUser(ctx, pool, log, user)
 	if err != nil {
-		var object_exist_err *repo_errors.ObjectAlreadyExistsError
-		if errors.As(err, &object_exist_err) {
-			return nil, api_errors.BadRequestError{Detail: object_exist_err.Error()}
-		} else {
-			return nil, &api_errors.InternalServerError{}
-		}
+		return nil, err
 	}
 
 	tokens, err := GenerateTokens(user_id)
 	if err != nil {
 		log.Error("Error with generating tokens:", err)
-		return nil, &api_errors.InternalServerError{}
+		return nil, err
 	}
 	return tokens, nil
 }
@@ -60,22 +53,19 @@ func LoginUser(
 		login_data.Phone,
 	)
 	if err != nil {
-		var object_not_found_err *repo_errors.ObjectNotFoundError
-		if errors.As(err, &object_not_found_err) {
-			return nil, api_errors.AuthenticationError{
-				Detail: fmt.Sprintf("User with phone %s not found", login_data.Phone),
-			}
+		if errors.Is(err, repo_errors.ErrObjectNotFound) {
+			return nil, service_errors.ErrUserNotFound
 		}
-		return nil, &api_errors.InternalServerError{}
+		return nil, err
 	}
 	if !CheckPasswordHash(login_data.Password, user.Password) {
-		return nil, &api_errors.AuthenticationError{Detail: "Invalid password"}
+		return nil, service_errors.ErrInvalidPassword
 	}
 
 	tokens, err := GenerateTokens(user.Id)
 	if err != nil {
 		log.Error("Error with generating tokens:", err)
-		return nil, &api_errors.InternalServerError{}
+		return nil, nil
 	}
 	return tokens, nil
 }
@@ -85,7 +75,7 @@ func GetUserByToken(
 	pool *pgxpool.Pool,
 	log *logrus.Logger,
 	token entities.Token,
-) (*entities.UserAuth, error) {
+) (*entities.User, error) {
 	claims, err := ValidateToken(token)
 	if err != nil {
 		log.Errorf("Error while validating token: %s", err)
@@ -98,12 +88,7 @@ func GetUserByToken(
 		claims.UserID,
 	)
 	if err != nil {
-		log.Errorf("Error while getting user by id %d: %s", claims.UserID, err)
 		return nil, err
-	}
-	if user.Id == 0 {
-		log.Errorf("User with id %d not found", claims.UserID)
-		return nil, token_errors.InvalidTokenError{}
 	}
 
 	return user, nil

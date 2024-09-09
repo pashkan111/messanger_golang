@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"messanger/src/errors/api_errors"
+	"messanger/src/errors/validation_errors"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -21,19 +21,19 @@ func ValidateRequestData[T any](request_schema T, body io.Reader) (*T, error) {
 	if err := decoder.Decode(&request_schema); err != nil {
 		var unmarshal_err *json.UnmarshalTypeError
 		if errors.As(err, &unmarshal_err) {
-			return nil, api_errors.BadRequestError{Detail: getJsonUnmarshalError(unmarshal_err)}
+			return nil, validation_errors.ErrValidation{Detail: getJsonUnmarshalError(unmarshal_err)}
 		}
-		return nil, api_errors.BadRequestError{Detail: err.Error()}
+		return nil, validation_errors.ErrValidation{Detail: err.Error()}
 	}
 
 	err := validateData(&request_schema)
 	if err != nil {
 		for _, err := range err.(validator.ValidationErrors) {
 			fieldError := fmt.Sprintf("Validation failed on field '%s', condition: '%s'", err.Field(), err.Tag())
-			return nil, api_errors.BadRequestError{Detail: fieldError}
+			return nil, validation_errors.ErrValidation{Detail: fieldError}
 		}
 		// TODO: add logging
-		return nil, api_errors.BadRequestError{Detail: "Validation failed"}
+		return nil, validation_errors.ErrValidation{Detail: "Validation failed"}
 	}
 	return &request_schema, nil
 }

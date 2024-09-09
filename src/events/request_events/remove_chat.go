@@ -4,14 +4,16 @@ import (
 	"messanger/src/events"
 )
 
-type MessageDeletedEventRequest struct {
+type RemoveChatEventRequest struct {
 	RequestEventType events.ClientRequestEvent `json:"request_event_type" validate:"required"`
 	ChatId           int                       `json:"chat_id" validate:"required"`
-	MessageId        int                       `json:"message_id" validate:"required"`
 }
 
-type MessageDeletedEventResponse struct {
-	MessageId int                              `json:"message_id"`
+func (e RemoveChatEventRequest) GetEventType() events.ClientRequestEvent {
+	return e.RequestEventType
+}
+
+type RemoveChatEventResponse struct {
 	EventType events.EventType                 `json:"event_type"`
 	Status    events.ClientResponseEventStatus `json:"status"`
 }

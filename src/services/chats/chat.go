@@ -2,14 +2,11 @@ package chats
 
 import (
 	"context"
-	"errors"
-	"messanger/src/entities"
 	"messanger/src/entities/message_entities"
 
 	"messanger/src/entities/dialog_entities"
 	"messanger/src/repository/postgres_repos"
 
-	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/sirupsen/logrus"
 )
@@ -89,40 +86,23 @@ func GetDialogsForListing(
 	return chats, nil
 }
 
-func GetMessagesForDialog(
-	ctx context.Context,
-	pool *pgxpool.Pool,
-	log *logrus.Logger,
-	dialog_id int,
-	query_params entities.QueryParams,
-) ([]message_entities.MessageForDialog, error) {
-	messages, err := postgres_repos.GetMessagesByDialogId(
-		ctx, pool, log, dialog_id, query_params,
-	)
-	if err != nil {
-		log.Error("Error with getting messages for dialog:", err)
-		return nil, err
-	}
-	return messages, nil
-}
-
-func DeleteChat(
-	ctx context.Context,
-	pool *pgxpool.Pool,
-	log *logrus.Logger,
-	chat_id int,
-	user_id int,
-	delete_both bool,
-) error {
-	err := postgres_repos.DeleteChat(ctx, pool, log, chat_id, user_id, delete_both)
-	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) && pgErr.Code == "23503" {
-		log.Error("Error with deleting chat:", err)
-		return errors.New(pgErr.Detail)
-	}
-	if err != nil {
-		log.Error("Error with deleting chat:", err)
-		return err
-	}
-	return nil
-}
+// func DeleteChat(
+// 	ctx context.Context,
+// 	pool *pgxpool.Pool,
+// 	log *logrus.Logger,
+// 	chat_id int,
+// 	user_id int,
+// 	delete_both bool,
+// ) error {
+// 	err := postgres_repos.DeleteChat(ctx, pool, log, chat_id, user_id, delete_both)
+// 	var pgErr *pgconn.PgError
+// 	if errors.As(err, &pgErr) && pgErr.Code == "23503" {
+// 		log.Error("Error with deleting chat:", err)
+// 		return errors.New(pgErr.Detail)
+// 	}
+// 	if err != nil {
+// 		log.Error("Error with deleting chat:", err)
+// 		return err
+// 	}
+// 	return nil
+// }

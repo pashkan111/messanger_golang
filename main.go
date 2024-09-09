@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"messanger/src/api"
-	"messanger/src/utils"
-	"messanger/src/ws"
+	"messanger/src/dependencies"
+	"messanger/src/views/api"
+	"messanger/src/views/ws"
 
 	"net/http"
 
@@ -17,9 +17,9 @@ import (
 func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	log := utils.GetLogger()
-	postgres_pool := utils.GetPostgresPool(ctx, log)
-	// redis_pool := utils.GetRedisPool(ctx, log)
+	log := dependencies.GetLogger()
+	postgres_pool := dependencies.GetPostgresPool(ctx, log)
+	// redis_pool := dependencies.GetRedisPool(ctx, log)
 
 	router := mux.NewRouter()
 	api.InitAuthRoutes(router, postgres_pool, log)

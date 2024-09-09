@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"messanger/src/api"
 	"messanger/src/entities"
 	"messanger/src/services/auth"
+	"messanger/src/views/api"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -52,7 +52,7 @@ func TestRegisterUserHandler__Success(t *testing.T) {
 	assert.NotEmpty(t, response.AccessToken)
 	assert.NotEmpty(t, response.RefreshToken)
 
-	var userFromDB entities.UserAuth
+	var userFromDB entities.User
 	row := pool.QueryRow(
 		context.Background(),
 		"SELECT * FROM users WHERE username = $1 AND phone = $2",
@@ -141,14 +141,14 @@ func TestRegisterUserHandler__UserAlreadyExist(t *testing.T) {
 	rr = httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
 
-	assert.Equal(t, http.StatusBadRequest, rr.Code)
+	assert.Equal(t, http.StatusUnauthorized, rr.Code)
 
 	var response entities.ErrorResponse
 	err = json.NewDecoder(rr.Body).Decode(&response)
 	require.NoError(t, err)
 	assert.Equal(
 		t,
-		"Bad Request: Object already exists: Key (username)=(pashtet1) already exists.",
+		"Object already exists. Key (username)=(pashtet1) already exists.",
 		response.Error,
 	)
 }

@@ -1,31 +1,18 @@
 package repo_errors
 
-type OperationError struct{}
+import "errors"
 
-func (e OperationError) Error() string {
-	return "Error while performing operation"
-}
+var ErrOperationError = errors.New("error while performing operation")
+var ErrObjectNotFound = errors.New("object not found")
 
-type ObjectNotFoundError struct {
+type ErrObjectAlreadyExists struct {
 	Detail string
 }
 
-func (e ObjectNotFoundError) Error() string {
-	msg := "Object not found"
+func (e ErrObjectAlreadyExists) Error() string {
+	errorText := "Object already exists"
 	if e.Detail != "" {
-		msg += ": " + e.Detail
+		return errorText + ". " + e.Detail
 	}
-	return msg
-}
-
-type ObjectAlreadyExistsError struct {
-	Detail string
-}
-
-func (e ObjectAlreadyExistsError) Error() string {
-	msg := "Object already exists"
-	if e.Detail != "" {
-		msg += ": " + e.Detail
-	}
-	return msg
+	return errorText
 }

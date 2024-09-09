@@ -4,10 +4,12 @@ import (
 	"context"
 	"testing"
 
-	"messanger/src/entities"
 	"messanger/src/entities/dialog_entities"
 	"messanger/src/entities/message_entities"
+	"messanger/src/events"
+	"messanger/src/events/request_events"
 	"messanger/src/services/chats"
+	"messanger/src/services/messages"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -150,6 +152,7 @@ func TestGetDialogsForListing__DialogsExist(t *testing.T) {
 		Text:        "Hello",
 		IsRead:      true,
 		MessageType: "text",
+		CreatedAt:   "2021-01-01 00:00:00+03",
 	})
 	require.NoError(t, err)
 
@@ -159,6 +162,7 @@ func TestGetDialogsForListing__DialogsExist(t *testing.T) {
 		Text:        "Hello, brat",
 		IsRead:      true,
 		MessageType: "text",
+		CreatedAt:   "2021-01-01 00:00:01+03",
 	})
 	require.NoError(t, err)
 
@@ -168,6 +172,7 @@ func TestGetDialogsForListing__DialogsExist(t *testing.T) {
 		Text:        "Hello, brat",
 		IsRead:      false,
 		MessageType: "text",
+		CreatedAt:   "2021-01-01 00:00:02+03",
 	})
 	require.NoError(t, err)
 
@@ -177,6 +182,7 @@ func TestGetDialogsForListing__DialogsExist(t *testing.T) {
 		Text:        "how are you?",
 		IsRead:      false,
 		MessageType: "text",
+		CreatedAt:   "2021-01-01 00:00:03+03",
 	})
 	require.NoError(t, err)
 
@@ -280,14 +286,15 @@ func Test_GetMessagesForDialog(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	dialogs, err := chats.GetMessagesForDialog(
+	dialogs, err := messages.GetMessagesForDialog(
 		ctx,
 		pool,
 		log,
-		dialog1.Id,
-		entities.QueryParams{
-			Offset: 0,
-			Limit:  2,
+		request_events.GetMessagesEventRequest{
+			DialogId:         dialog1.Id,
+			Offset:           0,
+			Limit:            2,
+			RequestEventType: events.GetMessagesRequestEvent,
 		},
 	)
 

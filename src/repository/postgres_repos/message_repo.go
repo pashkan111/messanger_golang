@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"messanger/src/entities"
 	"messanger/src/entities/message_entities"
+	"messanger/src/events/request_events"
 
 	"messanger/src/errors/repo_errors"
 
@@ -24,7 +24,7 @@ func CreateMessage(
 
 	if err != nil {
 		log.Error("Error with acquiring connection:", err)
-		return 0, repo_errors.OperationError{}
+		return 0, repo_errors.ErrOperationError
 	}
 	defer conn.Release()
 
@@ -45,11 +45,11 @@ func CreateMessage(
 		if errors.As(err, &pg_err) {
 			if pg_err.Code == "23503" {
 				log.Errorf("error: %s. Detail: %s", pg_err.Error(), pg_err.Detail)
-				return 0, repo_errors.ObjectNotFoundError{}
+				return 0, repo_errors.ErrObjectNotFound
 			}
 		} else {
 			log.Error("Error creating message: ", err.Error())
-			return 0, repo_errors.OperationError{}
+			return 0, repo_errors.ErrOperationError
 		}
 	}
 	return message_id, nil
@@ -65,7 +65,7 @@ func UpdateMessage(
 
 	if err != nil {
 		log.Error("Error with acquiring connection:", err)
-		return repo_errors.OperationError{}
+		return repo_errors.ErrOperationError
 	}
 	defer conn.Release()
 
@@ -81,7 +81,7 @@ func UpdateMessage(
 
 	if err != nil {
 		log.Error("Error updating message: ", err.Error())
-		return repo_errors.OperationError{}
+		return repo_errors.ErrOperationError
 	}
 	return nil
 }
@@ -97,7 +97,7 @@ func GetLastMessageByDialogId(
 
 	if err != nil {
 		log.Error("Error with acquiring connection:", err)
-		return nil, repo_errors.OperationError{}
+		return nil, repo_errors.ErrOperationError
 	}
 	defer conn.Release()
 
@@ -135,7 +135,7 @@ func GetLastMessageByDialogId(
 
 	if err != nil {
 		log.Error("Error with obtaining messages:", err)
-		return nil, repo_errors.OperationError{}
+		return nil, repo_errors.ErrOperationError
 	}
 
 	var messages []message_entities.MessageByDialogWithDialogId
@@ -151,7 +151,7 @@ func GetLastMessageByDialogId(
 		)
 		if err != nil {
 			log.Errorf("row scan failed: %v\n", err)
-			return nil, repo_errors.OperationError{}
+			return nil, repo_errors.ErrOperationError
 		}
 		fmt.Println(message.MessageType)
 		messages = append(messages, message)
@@ -163,14 +163,13 @@ func GetMessagesByDialogId(
 	ctx context.Context,
 	pool *pgxpool.Pool,
 	log *logrus.Logger,
-	dialog_id int,
-	query_params entities.QueryParams,
+	event request_events.GetMessagesEventRequest,
 ) ([]message_entities.MessageForDialog, error) {
 	conn, err := pool.Acquire(ctx)
 
 	if err != nil {
 		log.Error("Error with acquiring connection:", err)
-		return nil, repo_errors.OperationError{}
+		return nil, repo_errors.ErrOperationError
 	}
 	defer conn.Release()
 
@@ -189,14 +188,14 @@ func GetMessagesByDialogId(
 		OFFSET $2
 		LIMIT $3
 		`,
-		dialog_id,
-		query_params.Offset,
-		query_params.Limit,
+		event.DialogId,
+		event.Offset,
+		event.Limit,
 	)
 
 	if err != nil {
 		log.Error("Error with obtaining messages:", err)
-		return nil, repo_errors.OperationError{}
+		return nil, repo_errors.ErrOperationError
 	}
 
 	var messages []message_entities.MessageForDialog
@@ -212,7 +211,7 @@ func GetMessagesByDialogId(
 		)
 		if err != nil {
 			log.Errorf("row scan failed: %v\n", err)
-			return nil, repo_errors.OperationError{}
+			return nil, repo_errors.ErrOperationError
 		}
 		messages = append(messages, message)
 	}

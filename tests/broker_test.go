@@ -3,7 +3,6 @@ package tests
 import (
 	"context"
 	"messanger/src/services/event_broker"
-	"messanger/src/utils"
 	"testing"
 
 	"github.com/go-redis/redis/v8"
@@ -14,7 +13,7 @@ import (
 func TestRedisBroker__MessageSentToChannel(t *testing.T) {
 	// setup
 	ctx := context.Background()
-	log := utils.GetLogger()
+	log := SetupLogger()
 	redis_client, cleanup, err := SetupTestRedisPool(ctx, log)
 	require.NoError(t, err)
 
@@ -50,7 +49,7 @@ func TestRedisBroker__MessageSentToChannel(t *testing.T) {
 
 func TestRedisBroker__MessageReadFromChannel(t *testing.T) {
 	ctx := context.Background()
-	log := utils.GetLogger()
+	log := SetupLogger()
 	redis_client, cleanup, err := SetupTestRedisPool(ctx, log)
 	require.NoError(t, err)
 
