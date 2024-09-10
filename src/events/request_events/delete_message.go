@@ -1,21 +1,21 @@
 package request_events
 
 import (
-	"messanger/src/events"
+	"messanger/src/enums/event"
 )
 
-type MessageDeletedEventRequest struct {
-	RequestEventType events.ClientRequestEvent `json:"request_event_type" validate:"required"`
-	ChatId           int                       `json:"chat_id" validate:"required"`
-	MessageId        int                       `json:"message_id" validate:"required"`
+type DeleteMessageEventRequest struct {
+	RequestEventType event.ClientRequestEvent `json:"request_event_type" validate:"required"`
+	ChatId           int                      `json:"chat_id" validate:"required"`
+	MessageId        int                      `json:"message_id" validate:"required"`
 }
 
-func (e MessageDeletedEventRequest) GetEventType() events.ClientRequestEvent {
+func (e DeleteMessageEventRequest) GetEventType() event.ClientRequestEvent {
 	return e.RequestEventType
 }
 
-type MessageDeletedEventResponse struct {
-	MessageId int                              `json:"message_id"`
-	EventType events.EventType                 `json:"event_type"`
-	Status    events.ClientResponseEventStatus `json:"status"`
+type DeleteMessageEventResponse struct {
+	MessageId int                             `json:"message_id"`
+	EventType event.EventType                 `json:"event_type"`
+	Status    event.ClientResponseEventStatus `json:"status"`
 }

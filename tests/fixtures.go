@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"time"
 
 	"github.com/jackc/pgx/v4/pgxpool"
 )
@@ -29,7 +30,7 @@ type MessageDialogTest struct {
 	IsRead      bool
 	MessageType string
 	Link        string
-	CreatedAt   string
+	CreatedAt   time.Time
 }
 
 func GetTestUser(pool *pgxpool.Pool, user UserTest) UserTest {

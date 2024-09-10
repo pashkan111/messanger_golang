@@ -1,19 +1,19 @@
 package request_events
 
 import (
-	"messanger/src/events"
+	"messanger/src/enums/event"
 )
 
 type RemoveChatEventRequest struct {
-	RequestEventType events.ClientRequestEvent `json:"request_event_type" validate:"required"`
-	ChatId           int                       `json:"chat_id" validate:"required"`
+	RequestEventType event.ClientRequestEvent `json:"request_event_type" validate:"required"`
+	ChatId           int                      `json:"chat_id" validate:"required"`
 }
 
-func (e RemoveChatEventRequest) GetEventType() events.ClientRequestEvent {
+func (e RemoveChatEventRequest) GetEventType() event.ClientRequestEvent {
 	return e.RequestEventType
 }
 
 type RemoveChatEventResponse struct {
-	EventType events.EventType                 `json:"event_type"`
-	Status    events.ClientResponseEventStatus `json:"status"`
+	EventType event.EventType                 `json:"event_type"`
+	Status    event.ClientResponseEventStatus `json:"status"`
 }

@@ -1,30 +1,19 @@
 package message_entities
 
-type CreateMessageWithChat struct {
-	CreatorId int
-	Text      string
-	ChatId    int
-}
-
-type CreateMessageWithoutChat struct {
-	CreatorId  int
-	Text       string
-	ReceiverId int
-}
-
-type CreateMessageWithoutChatResponse struct {
-	ChatId    int
-	MessageId int
-}
+import (
+	"messanger/src/enums/message_type"
+	"time"
+)
 
 type MessageForDialog struct {
 	// Message for dialog
-	CreatorId   int         `json:"creator_id"`
-	MessageType MessageType `json:"message_type"`
-	Text        string      `json:"text"`
-	Link        string      `json:"link"`
-	IsRead      bool        `json:"is_read"`
-	CreatedAt   string      `json:"created_at"`
+	CreatorId   int
+	MessageType MessageType
+	Text        string
+	Link        string
+	IsRead      bool
+	CreatedAt   time.Time
+	Type        message_type.MessageType
 }
 
 type UpdateMessage struct {
@@ -34,9 +23,10 @@ type UpdateMessage struct {
 
 type MessageByDialog struct {
 	// Message for chat listing
-	TextOfLastMessage     string      `json:"text_of_last_message"`
+	Text                  string      `json:"text"`
 	AuthorIdOfLastMessage int         `json:"author_id_of_last_message"`
 	UnreadedCount         int         `json:"unreaded_count"`
 	MessageType           MessageType `json:"message_type"`
 	Link                  string      `json:"link"`
+	CreatedAt             time.Time   `json:"created_at"`
 }

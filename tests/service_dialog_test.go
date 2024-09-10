@@ -3,10 +3,11 @@ package tests
 import (
 	"context"
 	"testing"
+	"time"
 
 	"messanger/src/entities/dialog_entities"
 	"messanger/src/entities/message_entities"
-	"messanger/src/events"
+	"messanger/src/enums/event"
 	"messanger/src/events/request_events"
 	"messanger/src/services/chats"
 	"messanger/src/services/messages"
@@ -151,8 +152,8 @@ func TestGetDialogsForListing__DialogsExist(t *testing.T) {
 		AuthorId:    user1.Id,
 		Text:        "Hello",
 		IsRead:      true,
-		MessageType: "text",
-		CreatedAt:   "2021-01-01 00:00:00+03",
+		MessageType: "TEXT",
+		CreatedAt:   time.Date(2021, 12, 12, 1, 23, 33, 0, time.UTC),
 	})
 	require.NoError(t, err)
 
@@ -161,8 +162,8 @@ func TestGetDialogsForListing__DialogsExist(t *testing.T) {
 		AuthorId:    user1.Id,
 		Text:        "Hello, brat",
 		IsRead:      true,
-		MessageType: "text",
-		CreatedAt:   "2021-01-01 00:00:01+03",
+		MessageType: "TEXT",
+		CreatedAt:   time.Date(2021, 12, 12, 1, 23, 33, 0, time.UTC),
 	})
 	require.NoError(t, err)
 
@@ -171,8 +172,8 @@ func TestGetDialogsForListing__DialogsExist(t *testing.T) {
 		AuthorId:    user2.Id,
 		Text:        "Hello, brat",
 		IsRead:      false,
-		MessageType: "text",
-		CreatedAt:   "2021-01-01 00:00:02+03",
+		MessageType: "TEXT",
+		CreatedAt:   time.Date(2021, 12, 12, 1, 23, 37, 0, time.UTC),
 	})
 	require.NoError(t, err)
 
@@ -181,8 +182,8 @@ func TestGetDialogsForListing__DialogsExist(t *testing.T) {
 		AuthorId:    user3.Id,
 		Text:        "how are you?",
 		IsRead:      false,
-		MessageType: "text",
-		CreatedAt:   "2021-01-01 00:00:03+03",
+		MessageType: "TEXT",
+		CreatedAt:   time.Date(2021, 12, 12, 1, 23, 39, 0, time.UTC),
 	})
 	require.NoError(t, err)
 
@@ -197,22 +198,24 @@ func TestGetDialogsForListing__DialogsExist(t *testing.T) {
 				Id:   dialog1.Id,
 				Name: dialog1.Name,
 				LastMessage: message_entities.MessageByDialog{
-					TextOfLastMessage:     "Hello, brat",
+					Text:                  "Hello, brat",
 					AuthorIdOfLastMessage: user2.Id,
 					UnreadedCount:         1,
-					MessageType:           "text",
+					MessageType:           "TEXT",
 					Link:                  "",
+					CreatedAt:             time.Date(2021, 12, 12, 1, 23, 37, 0, time.UTC),
 				},
 			},
 			{
 				Id:   dialog2.Id,
 				Name: dialog2.Name,
 				LastMessage: message_entities.MessageByDialog{
-					TextOfLastMessage:     "how are you?",
+					Text:                  "how are you?",
 					AuthorIdOfLastMessage: user3.Id,
 					UnreadedCount:         1,
-					MessageType:           "text",
+					MessageType:           "TEXT",
 					Link:                  "",
+					CreatedAt:             time.Date(2021, 12, 12, 1, 23, 39, 0, time.UTC),
 				},
 			},
 		},
@@ -251,8 +254,8 @@ func Test_GetMessagesForDialog(t *testing.T) {
 		AuthorId:    user1.Id,
 		Text:        "Hello",
 		IsRead:      true,
-		MessageType: "text",
-		CreatedAt:   "2021-01-01 00:00:00+03",
+		MessageType: "TEXT",
+		CreatedAt:   time.Date(2021, 12, 12, 1, 23, 55, 0, time.UTC),
 	})
 	require.NoError(t, err)
 
@@ -261,8 +264,8 @@ func Test_GetMessagesForDialog(t *testing.T) {
 		AuthorId:    user1.Id,
 		Text:        "brat",
 		IsRead:      true,
-		MessageType: "text",
-		CreatedAt:   "2021-01-01 00:00:01+03",
+		MessageType: "TEXT",
+		CreatedAt:   time.Date(2021, 12, 12, 2, 23, 39, 0, time.UTC),
 	})
 	require.NoError(t, err)
 
@@ -271,8 +274,8 @@ func Test_GetMessagesForDialog(t *testing.T) {
 		AuthorId:    user2.Id,
 		Text:        "Hello, brat",
 		IsRead:      false,
-		MessageType: "text",
-		CreatedAt:   "2021-01-01 00:00:02+03",
+		MessageType: "TEXT",
+		CreatedAt:   time.Date(2021, 12, 12, 3, 23, 39, 0, time.UTC),
 	})
 	require.NoError(t, err)
 
@@ -281,8 +284,8 @@ func Test_GetMessagesForDialog(t *testing.T) {
 		AuthorId:    user2.Id,
 		Text:        "how are you?",
 		IsRead:      false,
-		MessageType: "text",
-		CreatedAt:   "2021-01-01 00:00:03+03",
+		MessageType: "TEXT",
+		CreatedAt:   time.Date(2021, 12, 13, 1, 23, 39, 0, time.UTC),
 	})
 	require.NoError(t, err)
 
@@ -294,7 +297,7 @@ func Test_GetMessagesForDialog(t *testing.T) {
 			DialogId:         dialog1.Id,
 			Offset:           0,
 			Limit:            2,
-			RequestEventType: events.GetMessagesRequestEvent,
+			RequestEventType: event.GetMessagesRequestEvent,
 		},
 	)
 
@@ -306,18 +309,18 @@ func Test_GetMessagesForDialog(t *testing.T) {
 			{
 				CreatorId:   user2.Id,
 				Text:        "how are you?",
-				MessageType: "text",
+				MessageType: "TEXT",
 				Link:        "",
 				IsRead:      false,
-				CreatedAt:   "2020-12-31 21:00:03+00",
+				CreatedAt:   time.Date(2021, 12, 13, 1, 23, 39, 0, time.UTC),
 			},
 			{
 				CreatorId:   user2.Id,
 				Text:        "Hello, brat",
-				MessageType: "text",
+				MessageType: "TEXT",
 				Link:        "",
 				IsRead:      false,
-				CreatedAt:   "2020-12-31 21:00:02+00",
+				CreatedAt:   time.Date(2021, 12, 12, 3, 23, 39, 0, time.UTC),
 			},
 		},
 		dialogs,

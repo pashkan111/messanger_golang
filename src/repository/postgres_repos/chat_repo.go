@@ -75,7 +75,7 @@ func GetDialogsByUserId(
 
 	conn, err := pool.Acquire(ctx)
 	if err != nil {
-		log.Error("Error with acquiring connection:", err)
+		log.Errorf("Error with acquiring connection: %v\n", err)
 		return nil, repo_errors.ErrOperationError
 	}
 	defer conn.Release()
@@ -95,7 +95,7 @@ func GetDialogsByUserId(
 		user_id,
 	)
 	if err != nil {
-		log.Error("Error with acquiring connection:", err)
+		log.Errorf("Error obtaining dialogs: %v\n", err)
 		return nil, err
 	}
 

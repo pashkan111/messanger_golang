@@ -1,17 +1,17 @@
 package request_events
 
 import (
-	"messanger/src/events"
+	"messanger/src/enums/event"
 )
 
 type RequestEventInterface interface {
-	GetEventType() events.ClientRequestEvent
+	GetEventType() event.ClientRequestEvent
 }
 
 type BaseEventRequest struct {
-	RequestEventType events.ClientRequestEvent `json:"request_event_type"`
+	RequestEventType event.ClientRequestEvent `json:"request_event_type"`
 }
 
-func (b BaseEventRequest) GetEventType() events.ClientRequestEvent {
+func (b BaseEventRequest) GetEventType() event.ClientRequestEvent {
 	return b.RequestEventType
 }

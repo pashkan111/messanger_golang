@@ -3,6 +3,7 @@ package chats
 import (
 	"context"
 	"messanger/src/entities/message_entities"
+	"sort"
 
 	"messanger/src/entities/dialog_entities"
 	"messanger/src/repository/postgres_repos"
@@ -42,7 +43,7 @@ func GetDialogsForListing(
 ) ([]dialog_entities.DialogForListing, error) {
 	dialogs, err := postgres_repos.GetDialogsByUserId(ctx, pool, log, user_id)
 	if err != nil {
-		log.Error("Error with getting chats for listing:", err)
+		log.Error("Error with getting chats for listing: ", err)
 		return nil, err
 	}
 	if len(dialogs) == 0 {
@@ -56,7 +57,7 @@ func GetDialogsForListing(
 
 	messages, err := postgres_repos.GetLastMessageByDialogId(ctx, pool, log, dialog_ids, user_id)
 	if err != nil {
-		log.Error("Error with getting last messages by dialog id:", err)
+		log.Error("Error with getting last messages by dialog id: ", err)
 		return nil, err
 	}
 
@@ -73,15 +74,24 @@ func GetDialogsForListing(
 
 	for dialog_id, message := range messages_mapping {
 		dialog := dialogs_mapping[dialog_id]
+		if err != nil {
+			log.Errorf("Error parsing time: %s", err)
+		}
 		dialog.LastMessage = message_entities.MessageByDialog{
-			TextOfLastMessage:     message.TextOfLastMessage,
+			Text:                  message.Text,
 			AuthorIdOfLastMessage: message.AuthorIdOfLastMessage,
 			UnreadedCount:         message.UnreadedCount,
 			MessageType:           message.MessageType,
 			Link:                  message.Link,
+			CreatedAt:             message.CreatedAt,
+			// CreatedAt:             parsedTime,
 		}
 		chats = append(chats, dialog)
 	}
+
+	sort.Slice(chats, func(i, j int) bool {
+		return chats[i].LastMessage.CreatedAt.Before(chats[j].LastMessage.CreatedAt)
+	})
 
 	return chats, nil
 }

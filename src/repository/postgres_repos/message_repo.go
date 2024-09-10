@@ -3,9 +3,9 @@ package postgres_repos
 import (
 	"context"
 	"errors"
-	"fmt"
 	"messanger/src/entities/message_entities"
 	"messanger/src/events/request_events"
+	"messanger/src/utils"
 
 	"messanger/src/errors/repo_errors"
 
@@ -18,7 +18,7 @@ func CreateMessage(
 	ctx context.Context,
 	pool *pgxpool.Pool,
 	log *logrus.Logger,
-	message *message_entities.CreateMessageWithChat,
+	message request_events.CreateMessageEventRequest,
 ) (int, error) {
 	conn, err := pool.Acquire(ctx)
 
@@ -28,17 +28,19 @@ func CreateMessage(
 	}
 	defer conn.Release()
 
-	var message_id int
+	var messageId int
 	err = conn.QueryRow(
 		ctx,
-		`INSERT INTO dialog_message (text, chat_id, author_id)
-		VALUES($1, $2, $3)
-		RETURNING message_id
+		`INSERT INTO dialog_message (text, link, message_type, dialog_id, author_id)
+		VALUES($1, $2, $3, $4)
+		RETURNING dialog_message_id
 		`,
 		message.Text,
+		message.Link,
+		message.MessageType,
 		message.ChatId,
 		message.CreatorId,
-	).Scan(&message_id)
+	).Scan(&messageId)
 
 	if err != nil {
 		var pg_err *pgconn.PgError
@@ -52,7 +54,7 @@ func CreateMessage(
 			return 0, repo_errors.ErrOperationError
 		}
 	}
-	return message_id, nil
+	return messageId, nil
 }
 
 func UpdateMessage(
@@ -110,6 +112,7 @@ func GetLastMessageByDialogId(
 				author_id,
 				message_type,
 				link,
+				created_at,
 				ROW_NUMBER() OVER (
 					PARTITION BY dialog_id ORDER BY dialog_message_id DESC
 				) AS row_number,
@@ -125,7 +128,8 @@ func GetLastMessageByDialogId(
 			author_id,
 			message_type,
 			link,
-			unreaded_count
+			unreaded_count,
+			created_at::VARCHAR
 		FROM message_data
 		WHERE row_number = 1
 		`,
@@ -134,26 +138,36 @@ func GetLastMessageByDialogId(
 	)
 
 	if err != nil {
-		log.Error("Error with obtaining messages:", err)
+		log.Errorf("Error with obtaining messages: %v\n", err)
 		return nil, repo_errors.ErrOperationError
 	}
 
 	var messages []message_entities.MessageByDialogWithDialogId
 	for rows.Next() {
 		var message message_entities.MessageByDialogWithDialogId
+		var createdAt string
+
 		err := rows.Scan(
-			&message.TextOfLastMessage,
+			&message.Text,
 			&message.DialogId,
 			&message.AuthorIdOfLastMessage,
 			&message.MessageType,
 			&message.Link,
 			&message.UnreadedCount,
+			&createdAt,
 		)
 		if err != nil {
 			log.Errorf("row scan failed: %v\n", err)
 			return nil, repo_errors.ErrOperationError
 		}
-		fmt.Println(message.MessageType)
+
+		parsedTime, err := utils.ParseTimeFromString(createdAt)
+		if err != nil {
+			log.Errorf("Error parsing time: %s", err)
+			return nil, repo_errors.ErrOperationError
+		}
+
+		message.CreatedAt = *parsedTime
 		messages = append(messages, message)
 	}
 	return messages, nil
@@ -201,18 +215,28 @@ func GetMessagesByDialogId(
 	var messages []message_entities.MessageForDialog
 	for rows.Next() {
 		var message message_entities.MessageForDialog
+		var createdAt string
 		err := rows.Scan(
 			&message.CreatorId,
 			&message.Text,
 			&message.MessageType,
 			&message.Link,
 			&message.IsRead,
-			&message.CreatedAt,
+			&createdAt,
 		)
+
 		if err != nil {
 			log.Errorf("row scan failed: %v\n", err)
 			return nil, repo_errors.ErrOperationError
 		}
+
+		parsedTime, err := utils.ParseTimeFromString(createdAt)
+		if err != nil {
+			log.Errorf("Error parsing time: %s", err)
+			return nil, repo_errors.ErrOperationError
+		}
+
+		message.CreatedAt = *parsedTime
 		messages = append(messages, message)
 	}
 
