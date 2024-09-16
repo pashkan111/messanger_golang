@@ -4,14 +4,8 @@ import (
 	"messanger/src/entities/message_entities"
 )
 
-type DialogCreate struct {
-	CreatorId  int
-	ReceiverId int
-	Name       string
-}
-
 type DialogForListing struct {
-	Id          int
-	Name        string
-	LastMessage message_entities.MessageByDialog
+	Id               int
+	InterlocutorName string
+	LastMessage      message_entities.MessageByDialog
 }

@@ -15,7 +15,9 @@ func (b CreateDialogEventRequest) GetEventType() event.ClientRequestEvent {
 }
 
 type CreateDialogEventResponse struct {
-	EventType event.EventType                 `json:"event_type"`
-	Status    event.ClientResponseEventStatus `json:"status"`
-	ChatId    int                             `json:"chat_id"`
+	EventType        event.EventType                 `json:"event_type"`
+	Status           event.ClientResponseEventStatus `json:"status"`
+	DialogId         *int                            `json:"dialog_id"`
+	InterlocutorName *string                         `json:"interlocutor_name"`
+	Detail           string                          `json:"detail"`
 }

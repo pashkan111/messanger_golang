@@ -10,59 +10,82 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func GetOrCreateDialog(
+func GetDialog(
 	ctx context.Context,
 	pool *pgxpool.Pool,
 	log *logrus.Logger,
-	dialog dialog_entities.DialogCreate,
-) (int, error) {
+	userId int,
+) (*dialog_entities.Dialog, error) {
 	conn, err := pool.Acquire(ctx)
 
 	if err != nil {
 		log.Error("Error with acquiring connection:", err)
-		return 0, repo_errors.ErrOperationError
+		return nil, repo_errors.ErrOperationError
 	}
 	defer conn.Release()
 
-	var dialogId int
+	var dialog dialog_entities.Dialog
 	err = conn.QueryRow(
 		ctx,
 		`
-		SELECT dialog_id
-		FROM dialog
+		SELECT 
+			dialog_id,
+			users.username AS receiver_username
+		FROM 
+			dialog
+		JOIN 
+			users AS users ON users.user_id = dialog.receiver_id
 		WHERE 
-			(creator_id = $1 AND receiver_id = $2) OR
-			(creator_id = $2 AND receiver_id = $1)
+			creator_id = $1 OR receiver_id = $1
 		`,
-		dialog.CreatorId, dialog.ReceiverId,
-	).Scan(&dialogId)
+		userId,
+	).Scan(&dialog.Id, &dialog.InterlocutorName)
 
 	if err != nil {
-		if err.Error() != pgx.ErrNoRows.Error() {
-			log.Error("Error obtaining dialog: ", err)
-			return 0, repo_errors.ErrOperationError
+		if err.Error() == pgx.ErrNoRows.Error() {
+			return nil, repo_errors.ErrObjectNotFound
 		} else {
-			dialogId = 0
+			log.Error("Error obtaining dialog: ", err)
+			return nil, repo_errors.ErrOperationError
 		}
 	}
+	return &dialog, nil
+}
 
-	if dialogId == 0 {
-		err = conn.QueryRow(
-			ctx,
-			`
-			INSERT INTO dialog (creator_id, receiver_id, name)
-			VALUES ($1, $2, $3)
-			RETURNING dialog_id;
+func CreateDialog(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	log *logrus.Logger,
+	creatorId int,
+	receiverId int,
+) (*dialog_entities.Dialog, error) {
+	conn, err := pool.Acquire(ctx)
+
+	if err != nil {
+		log.Error("Error with acquiring connection:", err)
+		return nil, repo_errors.ErrOperationError
+	}
+	defer conn.Release()
+
+	var dialog dialog_entities.Dialog
+	err = conn.QueryRow(
+		ctx,
+		`
+			INSERT INTO dialog (creator_id, receiver_id)
+			VALUES ($1, $2)
+			RETURNING 
+				dialog_id,
+				(SELECT username FROM users WHERE user_id = $2) username
 			`,
-			dialog.CreatorId, dialog.ReceiverId, dialog.Name,
-		).Scan(&dialogId)
+		creatorId, receiverId,
+	).Scan(&dialog.Id, &dialog.InterlocutorName)
 
-		if err != nil {
-			log.Error("Error creating dialog: ", err)
-			return 0, repo_errors.ErrOperationError
-		}
+	if err != nil {
+		log.Error("Error creating dialog: ", err)
+		return nil, repo_errors.ErrOperationError
 	}
-	return dialogId, err
+
+	return &dialog, err
 }
 
 func GetDialogsByUserId(
@@ -84,8 +107,7 @@ func GetDialogsByUserId(
 		ctx,
 		`
 		SELECT 
-			dialog_id, 
-			name
+			dialog_id
 		FROM 
 			dialog
 		WHERE 
@@ -101,10 +123,63 @@ func GetDialogsByUserId(
 
 	for rows.Next() {
 		var dialog dialog_entities.DialogForListing
-		err := rows.Scan(&dialog.Id, &dialog.Name)
+		err := rows.Scan(&dialog.Id)
 		if err != nil {
 			log.Errorf("row scan failed: %v\n", err)
 			return nil, err
+		}
+		dialogs = append(dialogs, dialog)
+	}
+	return dialogs, nil
+}
+
+func GetInterlocutorsOfDialogs(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	log *logrus.Logger,
+	dialogIds []int,
+	creatorId int,
+) ([]dialog_entities.Dialog, error) {
+	conn, err := pool.Acquire(ctx)
+
+	if err != nil {
+		log.Error("Error with acquiring connection:", err)
+		return nil, repo_errors.ErrOperationError
+	}
+	defer conn.Release()
+
+	var dialogs []dialog_entities.Dialog
+	rows, err := conn.Query(
+		ctx,
+		`
+		SELECT 
+			dialog_id,
+			users.username AS receiver_username
+		FROM 
+			dialog d
+		JOIN 
+			users ON users.user_id = 
+			CASE
+				WHEN d.creator_id = $1 THEN d.receiver_id
+				ELSE d.creator_id
+			END
+		WHERE 
+			d.dialog_id = ANY($2)
+		`,
+		creatorId, dialogIds,
+	)
+
+	if err != nil {
+		log.Error("Error obtaining dialogs: ", err)
+		return nil, repo_errors.ErrOperationError
+	}
+
+	for rows.Next() {
+		var dialog dialog_entities.Dialog
+		err := rows.Scan(&dialog.Id, &dialog.InterlocutorName)
+		if err != nil {
+			log.Errorf("Row scan failed: %v\n", err)
+			return nil, repo_errors.ErrOperationError
 		}
 		dialogs = append(dialogs, dialog)
 	}

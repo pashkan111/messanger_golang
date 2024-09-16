@@ -2,8 +2,12 @@ package messages
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"messanger/src/entities/message_entities"
+	"messanger/src/errors/repo_errors"
+	"messanger/src/errors/service_errors"
 	"messanger/src/events/request_events"
 	"messanger/src/repository/postgres_repos"
 
@@ -36,6 +40,11 @@ func CreateMessage(
 		ctx, pool, log, message,
 	)
 	if err != nil {
+		if errors.Is(err, repo_errors.ErrObjectNotFound) {
+			return 0, service_errors.ErrObjectNotFound{
+				Detail: fmt.Sprintf("Chat not found. Id: %d", message.ChatId),
+			}
+		}
 		return 0, err
 	}
 	return message_id, nil

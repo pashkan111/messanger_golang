@@ -37,30 +37,31 @@ func TestGetOrCreateDialog__DialogExists(t *testing.T) {
 	})
 
 	dialog := GetTestDialog(pool, DialogTest{
-		Name:       "chat",
 		CreatorId:  user1.Id,
 		ReceiverId: user2.Id,
 	})
 
-	dialogId, err := chats.GetOrCreateDialog(ctx, pool, log, dialog_entities.DialogCreate{
+	dialogExisted, err := chats.GetOrCreateDialog(ctx, pool, log, request_events.CreateDialogEventRequest{
 		CreatorId:  user1.Id,
 		ReceiverId: user2.Id,
 	})
 
 	require.NoError(t, err)
-	require.Equal(t, dialog.Id, dialogId)
+	require.Equal(t, dialog.Id, dialogExisted.Id)
+	require.Equal(t, user2.Username, dialogExisted.InterlocutorName)
 
 	// Swap creator and receiver
-	dialogId, err = chats.GetOrCreateDialog(ctx, pool, log, dialog_entities.DialogCreate{
+	dialogExisted, err = chats.GetOrCreateDialog(ctx, pool, log, request_events.CreateDialogEventRequest{
 		CreatorId:  user2.Id,
 		ReceiverId: user1.Id,
 	})
 
 	require.NoError(t, err)
-	require.Equal(t, dialog.Id, dialogId)
+	require.Equal(t, dialog.Id, dialogExisted.Id)
+	require.Equal(t, user2.Username, dialogExisted.InterlocutorName)
 }
 
-func TestGetOrCreateDialog__DialogNotExists(t *testing.T) {
+func TestGetOrCreateDialog__DialogDoesntExist(t *testing.T) {
 	pool, cleanup, err := SetupTestDB()
 	require.NoError(t, err)
 	defer cleanup()
@@ -80,13 +81,14 @@ func TestGetOrCreateDialog__DialogNotExists(t *testing.T) {
 		Phone:    "12345",
 	})
 
-	dialogId, err := chats.GetOrCreateDialog(ctx, pool, log, dialog_entities.DialogCreate{
+	dialogCreated, err := chats.GetOrCreateDialog(ctx, pool, log, request_events.CreateDialogEventRequest{
 		CreatorId:  user1.Id,
 		ReceiverId: user2.Id,
 	})
 
 	require.NoError(t, err)
-	require.Equal(t, 1, dialogId)
+	require.Equal(t, 1, dialogCreated.Id)
+	require.Equal(t, user2.Username, dialogCreated.InterlocutorName)
 }
 
 func TestGetDialogsForListing__NoDialogs(t *testing.T) {
@@ -136,13 +138,11 @@ func TestGetDialogsForListing__DialogsExist(t *testing.T) {
 	})
 
 	dialog1 := GetTestDialog(pool, DialogTest{
-		Name:       "chat1",
 		CreatorId:  user1.Id,
 		ReceiverId: user2.Id,
 	})
 
 	dialog2 := GetTestDialog(pool, DialogTest{
-		Name:       "chat2",
 		CreatorId:  user1.Id,
 		ReceiverId: user3.Id,
 	})
@@ -195,8 +195,8 @@ func TestGetDialogsForListing__DialogsExist(t *testing.T) {
 		t,
 		[]dialog_entities.DialogForListing{
 			{
-				Id:   dialog1.Id,
-				Name: dialog1.Name,
+				Id:               dialog1.Id,
+				InterlocutorName: user2.Username,
 				LastMessage: message_entities.MessageByDialog{
 					Text:                  "Hello, brat",
 					AuthorIdOfLastMessage: user2.Id,
@@ -207,8 +207,8 @@ func TestGetDialogsForListing__DialogsExist(t *testing.T) {
 				},
 			},
 			{
-				Id:   dialog2.Id,
-				Name: dialog2.Name,
+				Id:               dialog2.Id,
+				InterlocutorName: user3.Username,
 				LastMessage: message_entities.MessageByDialog{
 					Text:                  "how are you?",
 					AuthorIdOfLastMessage: user3.Id,
@@ -244,7 +244,6 @@ func Test_GetMessagesForDialog(t *testing.T) {
 	})
 
 	dialog1 := GetTestDialog(pool, DialogTest{
-		Name:       "chat1",
 		CreatorId:  user1.Id,
 		ReceiverId: user2.Id,
 	})

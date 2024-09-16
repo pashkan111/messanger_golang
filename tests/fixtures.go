@@ -9,7 +9,6 @@ import (
 
 type DialogTest struct {
 	Id         int
-	Name       string
 	CreatorId  int
 	ReceiverId int
 }
@@ -46,10 +45,10 @@ func GetTestUser(pool *pgxpool.Pool, user UserTest) UserTest {
 
 func GetTestDialog(pool *pgxpool.Pool, dialog DialogTest) DialogTest {
 	pool.QueryRow(context.Background(),
-		`INSERT INTO dialog (creator_id, receiver_id, name) 
-		VALUES ($1, $2, $3) 
+		`INSERT INTO dialog (creator_id, receiver_id) 
+		VALUES ($1, $2) 
 		RETURNING dialog_id`,
-		dialog.CreatorId, dialog.ReceiverId, dialog.Name,
+		dialog.CreatorId, dialog.ReceiverId,
 	).Scan(&dialog.Id)
 
 	return dialog

@@ -2,7 +2,10 @@ package chats
 
 import (
 	"context"
+	"errors"
 	"messanger/src/entities/message_entities"
+	"messanger/src/errors/repo_errors"
+	"messanger/src/events/request_events"
 	"sort"
 
 	"messanger/src/entities/dialog_entities"
@@ -12,27 +15,30 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func getDialogName() string {
-	return ""
-}
-
 func GetOrCreateDialog(
 	ctx context.Context,
 	pool *pgxpool.Pool,
 	log *logrus.Logger,
-	dialog_data dialog_entities.DialogCreate,
-) (int, error) {
-	if dialog_data.Name == "" {
-		dialog_data.Name = getDialogName()
-	}
-	dialog_id, err := postgres_repos.GetOrCreateDialog(
-		ctx, pool, log, dialog_data,
+	dialogData request_events.CreateDialogEventRequest,
+) (*dialog_entities.Dialog, error) {
+	dialog, err := postgres_repos.GetDialog(
+		ctx, pool, log, dialogData.CreatorId,
 	)
 	if err != nil {
+		if errors.Is(err, repo_errors.ErrObjectNotFound) {
+			dialog, err := postgres_repos.CreateDialog(
+				ctx, pool, log, dialogData.CreatorId, dialogData.ReceiverId,
+			)
+			if err != nil {
+				log.Error("Error with creating dialog:", err)
+				return nil, err
+			}
+			return dialog, nil
+		}
 		log.Error("Error with getting or creating dialog:", err)
-		return 0, err
+		return nil, err
 	}
-	return dialog_id, nil
+	return dialog, nil
 }
 
 func GetDialogsForListing(
@@ -61,19 +67,30 @@ func GetDialogsForListing(
 		return nil, err
 	}
 
+	interlocutorsOfDialogs, err := postgres_repos.GetInterlocutorsOfDialogs(
+		ctx, pool, log, dialog_ids, user_id,
+	)
+
 	chats := make([]dialog_entities.DialogForListing, 0, len(dialogs))
 
 	messages_mapping := map[int]message_entities.MessageByDialogWithDialogId{}
 	dialogs_mapping := map[int]dialog_entities.DialogForListing{}
+	interlocutors_mapping := map[int]string{}
+
 	for _, message := range messages {
 		messages_mapping[message.DialogId] = message
 	}
 	for _, dialog := range dialogs {
 		dialogs_mapping[dialog.Id] = dialog
 	}
+	for _, interlocutor := range interlocutorsOfDialogs {
+		interlocutors_mapping[interlocutor.Id] = interlocutor.InterlocutorName
+	}
 
 	for dialog_id, message := range messages_mapping {
 		dialog := dialogs_mapping[dialog_id]
+		dialog.InterlocutorName = interlocutors_mapping[dialog_id]
+
 		if err != nil {
 			log.Errorf("Error parsing time: %s", err)
 		}

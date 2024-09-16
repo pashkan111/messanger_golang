@@ -88,6 +88,7 @@ func HandleEvent(
 			log.Error("Error with unmarshalling event:", err)
 			return nil, err
 		}
+		return CreateDialogEventHandler(ctx, pool, log, create_chat_event)
 
 	case event_types.RemoveDialogRequestEvent:
 		var remove_chat_event request_events.CreateDialogEventRequest

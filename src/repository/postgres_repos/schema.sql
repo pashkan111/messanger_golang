@@ -12,7 +12,6 @@ CREATE TABLE IF NOT EXISTS dialog (
     dialog_id BIGSERIAL UNIQUE,
     creator_id INTEGER REFERENCES users (user_id) ON DELETE CASCADE,
     receiver_id INTEGER REFERENCES users (user_id) ON DELETE CASCADE,
-    name VARCHAR(255),
     CONSTRAINT dialog_creator_participant_pk PRIMARY KEY (creator_id, receiver_id)
 );
 
