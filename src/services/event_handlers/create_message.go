@@ -19,18 +19,16 @@ func CreateMessageEventHandler(
 	createdMessageId, err := messages.CreateMessage(ctx, pool, log, event)
 	if err != nil {
 		return request_events.CreateMessageEventResponse{
-			MessageId:   nil,
-			MessageUUID: event.MessageUUID,
-			EventType:   event_enums.Response,
-			Status:      event_enums.Error,
-			Detail:      err.Error(),
+			MessageId: nil,
+			EventType: event_enums.Response,
+			Status:    event_enums.Error,
+			Detail:    err.Error(),
 		}, err
 	}
 	return request_events.CreateMessageEventResponse{
-		MessageId:   &createdMessageId,
-		MessageUUID: event.MessageUUID,
-		EventType:   event_enums.Response,
-		Status:      event_enums.Success,
-		Detail:      "",
+		MessageId: &createdMessageId,
+		EventType: event_enums.Response,
+		Status:    event_enums.Success,
+		Detail:    "",
 	}, err
 }

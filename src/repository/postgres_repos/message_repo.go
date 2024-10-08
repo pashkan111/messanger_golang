@@ -242,3 +242,5 @@ func GetMessagesByDialogId(
 
 	return messages, nil
 }
+
+// func DeleteMessage

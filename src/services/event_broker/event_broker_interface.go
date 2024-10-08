@@ -12,12 +12,14 @@ type BrokerInterface interface {
 	Publish(
 		ctx context.Context,
 		log *logrus.Logger,
-		channel string,
+		keys []string,
 		message interface{},
 	) error
 	Read(
 		ctx context.Context,
 		log *logrus.Logger,
-		channel string,
-	) ([]BrokerMessage, string, error)
+		keys []string,
+		channel chan []BrokerMessage,
+		stop chan struct{},
+	) error
 }

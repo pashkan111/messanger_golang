@@ -19,4 +19,5 @@ type UpdateMessageEventResponse struct {
 	MessageId int                             `json:"message_id"`
 	EventType event.EventType                 `json:"event_type"`
 	Status    event.ClientResponseEventStatus `json:"status"`
+	Detail    string                          `json:"detail"`
 }

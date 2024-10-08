@@ -1,13 +1,6 @@
 package broker_errors
 
-type BrokerSendMessageError struct{}
+import "errors"
 
-func (e BrokerSendMessageError) Error() string {
-	return "Error while sending message"
-}
-
-type BrokerReadMessageError struct{}
-
-func (e BrokerReadMessageError) Error() string {
-	return "Error while reading message"
-}
+var ErrBrokerSendMessage = errors.New("could not send message to broker")
+var ErrBrokerReadMessage = errors.New("could not read message from broker")

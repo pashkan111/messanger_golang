@@ -10,28 +10,23 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func GetChatsEventHandler(
+func DeleteDialogEventHandler(
 	ctx context.Context,
 	pool *pgxpool.Pool,
 	log *logrus.Logger,
-	event request_events.GetChatsEventRequest,
-) (request_events.GetChatsEventResponse, error) {
-	dialogs_for_listing, err := chats.GetDialogsForListing(
-		ctx,
-		pool,
-		log,
-		event.UserId,
-	)
+	event request_events.DeleteDialogEventRequest,
+) (request_events.DeleteDialogEventResponse, error) {
+	err := chats.DeleteDialog(ctx, pool, log, event)
 	if err != nil {
-		return request_events.GetChatsEventResponse{
+		return request_events.DeleteDialogEventResponse{
 			EventType: event_enums.Response,
 			Status:    event_enums.Error,
 			Detail:    err.Error(),
 		}, err
 	}
-	return request_events.GetChatsEventResponse{
+	return request_events.DeleteDialogEventResponse{
 		EventType: event_enums.Response,
 		Status:    event_enums.Success,
-		Dialogs:   dialogs_for_listing,
-	}, nil
+		Detail:    "",
+	}, err
 }

@@ -72,6 +72,7 @@ func HandleEvent(
 			log.Error("Error with unmarshalling event:", err)
 			return nil, err
 		}
+		return UpdateMessageEventHandler(ctx, pool, log, update_message_event)
 
 	case event_types.DeleteMessageRequestEvent:
 		var delete_message_event request_events.DeleteMessageEventRequest
@@ -90,13 +91,14 @@ func HandleEvent(
 		}
 		return CreateDialogEventHandler(ctx, pool, log, create_chat_event)
 
-	case event_types.RemoveDialogRequestEvent:
-		var remove_chat_event request_events.CreateDialogEventRequest
-		err := json.Unmarshal(queue_event.EventData, &remove_chat_event)
+	case event_types.DeleteDialogRequestEvent:
+		var delete_dialog_event request_events.DeleteDialogEventRequest
+		err := json.Unmarshal(queue_event.EventData, &delete_dialog_event)
 		if err != nil {
 			log.Error("Error with unmarshalling event:", err)
 			return nil, err
 		}
+		return DeleteDialogEventHandler(ctx, pool, log, delete_dialog_event)
 	}
 	log.Errorf("Unknown event type %s", base_event.RequestEventType)
 	return nil, nil

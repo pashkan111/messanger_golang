@@ -9,3 +9,8 @@ type DialogForListing struct {
 	InterlocutorName string
 	LastMessage      message_entities.MessageByDialog
 }
+
+type DeleteDialogForUser struct {
+	DialogId int
+	UserId   int
+}

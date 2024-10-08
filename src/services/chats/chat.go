@@ -101,7 +101,6 @@ func GetDialogsForListing(
 			MessageType:           message.MessageType,
 			Link:                  message.Link,
 			CreatedAt:             message.CreatedAt,
-			// CreatedAt:             parsedTime,
 		}
 		chats = append(chats, dialog)
 	}
@@ -113,23 +112,20 @@ func GetDialogsForListing(
 	return chats, nil
 }
 
-// func DeleteChat(
-// 	ctx context.Context,
-// 	pool *pgxpool.Pool,
-// 	log *logrus.Logger,
-// 	chat_id int,
-// 	user_id int,
-// 	delete_both bool,
-// ) error {
-// 	err := postgres_repos.DeleteChat(ctx, pool, log, chat_id, user_id, delete_both)
-// 	var pgErr *pgconn.PgError
-// 	if errors.As(err, &pgErr) && pgErr.Code == "23503" {
-// 		log.Error("Error with deleting chat:", err)
-// 		return errors.New(pgErr.Detail)
-// 	}
-// 	if err != nil {
-// 		log.Error("Error with deleting chat:", err)
-// 		return err
-// 	}
-// 	return nil
-// }
+func DeleteDialog(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	log *logrus.Logger,
+	dialog request_events.DeleteDialogEventRequest,
+) error {
+	var err error
+	if dialog.DeleteForBoth {
+		err = postgres_repos.DeleteDialogForAllParticipants(ctx, pool, log, dialog.DialogId)
+	} else {
+		err = postgres_repos.DeleteDialogForOneParticipant(ctx, pool, log, &dialog_entities.DeleteDialogForUser{
+			DialogId: dialog.DialogId,
+			UserId:   dialog.UserId,
+		})
+	}
+	return err
+}

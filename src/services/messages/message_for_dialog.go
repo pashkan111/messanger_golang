@@ -50,15 +50,18 @@ func CreateMessage(
 	return message_id, nil
 }
 
-// func UpdateMessage(
-// 	ctx context.Context,
-// 	pool *pgxpool.Pool,
-// 	log *logrus.Logger,
-// 	message message_entities.UpdateMessage,
-// ) error {
-// 	err := postgres_repos.UpdateMessage(ctx, pool, log, message)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
+func UpdateMessage(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	log *logrus.Logger,
+	message request_events.UpdateMessageEventRequest,
+) error {
+	err := postgres_repos.UpdateMessage(ctx, pool, log, message_entities.UpdateMessage{
+		MessageId: message.MessageId,
+		Text:      message.Text,
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}

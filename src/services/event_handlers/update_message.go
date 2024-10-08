@@ -4,34 +4,29 @@ import (
 	"context"
 	event_enums "messanger/src/enums/event"
 	"messanger/src/events/request_events"
-	"messanger/src/services/chats"
+	"messanger/src/services/messages"
 
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/sirupsen/logrus"
 )
 
-func GetChatsEventHandler(
+func UpdateMessageEventHandler(
 	ctx context.Context,
 	pool *pgxpool.Pool,
 	log *logrus.Logger,
-	event request_events.GetChatsEventRequest,
-) (request_events.GetChatsEventResponse, error) {
-	dialogs_for_listing, err := chats.GetDialogsForListing(
-		ctx,
-		pool,
-		log,
-		event.UserId,
-	)
+	event request_events.UpdateMessageEventRequest,
+) (request_events.UpdateMessageEventResponse, error) {
+	err := messages.UpdateMessage(ctx, pool, log, event)
 	if err != nil {
-		return request_events.GetChatsEventResponse{
+		return request_events.UpdateMessageEventResponse{
 			EventType: event_enums.Response,
 			Status:    event_enums.Error,
 			Detail:    err.Error(),
 		}, err
 	}
-	return request_events.GetChatsEventResponse{
+	return request_events.UpdateMessageEventResponse{
 		EventType: event_enums.Response,
 		Status:    event_enums.Success,
-		Dialogs:   dialogs_for_listing,
-	}, nil
+		Detail:    "",
+	}, err
 }

@@ -1,10 +1,8 @@
 package ws
 
 import (
-	"fmt"
 	"messanger/src/entities"
 	"messanger/src/services/auth"
-	"messanger/src/services/event_handlers"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -36,8 +34,6 @@ func handleConnections(pool *pgxpool.Pool, log *logrus.Logger) http.HandlerFunc 
 			httpError(w, "Missing Authorization header", http.StatusUnauthorized)
 			return
 		}
-
-		fmt.Println(event_handlers.EVENT_HANDLERS_BY_TYPES)
 
 		_, err := auth.GetUserByToken(r.Context(), pool, log, entities.Token(token))
 		if err != nil {

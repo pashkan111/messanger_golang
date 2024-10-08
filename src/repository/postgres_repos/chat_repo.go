@@ -186,6 +186,64 @@ func GetInterlocutorsOfDialogs(
 	return dialogs, nil
 }
 
+func DeleteDialogForAllParticipants(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	log *logrus.Logger,
+	dialogId int,
+) error {
+	conn, err := pool.Acquire(ctx)
+	if err != nil {
+		log.Error("Error with acquiring connection:", err)
+		return err
+	}
+	defer conn.Release()
+
+	_, err = conn.Exec(
+		ctx,
+		`
+		UPDATE dialog
+		SET is_deleted = true
+		WHERE dialog_id = dialogId
+		`,
+		dialogId,
+	)
+	if err != nil {
+		log.Error("Error with deleting dialog: ", err)
+		return repo_errors.ErrOperationError
+	}
+	return nil
+}
+
+func DeleteDialogForOneParticipant(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	log *logrus.Logger,
+	dialogToDelete *dialog_entities.DeleteDialogForUser,
+) error {
+	conn, err := pool.Acquire(ctx)
+	if err != nil {
+		log.Error("Error with acquiring connection:", err)
+		return err
+	}
+	defer conn.Release()
+
+	_, err = conn.Exec(
+		ctx,
+		`
+		UPDATE dialog
+		SET deleted_for = array_append(deleted_for, $1)
+		WHERE dialog_id = $2;
+		`,
+		dialogToDelete.UserId, dialogToDelete.DialogId,
+	)
+	if err != nil {
+		log.Error("Error with deleting dialog: ", err)
+		return repo_errors.ErrOperationError
+	}
+	return nil
+}
+
 // func GetChatIdByParticipants(
 // 	ctx context.Context,
 // 	pool *pgxpool.Pool,

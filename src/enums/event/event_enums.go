@@ -9,7 +9,7 @@ const (
 	UpdateMessageRequestEvent = ClientRequestEvent("UPDATE_MESSAGE")
 	DeleteMessageRequestEvent = ClientRequestEvent("DELETE_MESSAGE")
 	CreateDialogRequestEvent  = ClientRequestEvent("CREATE_DIALOG")
-	RemoveDialogRequestEvent  = ClientRequestEvent("REMOVE_DIALOG")
+	DeleteDialogRequestEvent  = ClientRequestEvent("DELETE_DIALOG")
 	GetContactsRequestEvent   = ClientRequestEvent("GET_CONTACTS")
 )
 
