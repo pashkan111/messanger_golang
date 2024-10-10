@@ -2,8 +2,10 @@ package tests
 
 import (
 	"context"
+	"encoding/json"
 	"messanger/src/services/event_broker"
 	"testing"
+	"time"
 
 	"github.com/go-redis/redis/v8"
 
@@ -62,59 +64,45 @@ func TestRedisBroker__MessageReadFromChannel(t *testing.T) {
 
 	channel_name := "test_channel"
 	channel_name2 := "test_channel2"
+
 	channels := []string{channel_name, channel_name2}
-	message := map[string]interface{}{
-		"Text":     "hello world",
-		"Username": "PAVEL",
-	}
-	message2 := map[string]interface{}{
-		"Text":     "User send message",
-		"Username": "Egor",
-	}
-	result_chan := make(chan []event_broker.BrokerMessage)
-	stop := make(chan struct{})
 
-	_, err = redis_client.XAdd(ctx, &redis.XAddArgs{
-		Stream: channel_name,
-		Values: message,
-	}).Result()
-	require.NoError(t, err)
+	result_chan := make(chan event_broker.BrokerMessage, 2)
+	stop_chan := make(chan interface{})
 
-	_, err = redis_client.XAdd(ctx, &redis.XAddArgs{
-		Stream: channel_name2,
-		Values: message2,
-	}).Result()
-	require.NoError(t, err)
+	type Message struct {
+		Text     string
+		Username string
+	}
+
+	message := Message{Text: "Hello everyone", Username: "test_username"}
+	message2 := Message{Text: "Hello everyone2", Username: "test_username2"}
+
+	messageJson, _ := json.Marshal(message)
+	messageJson2, _ := json.Marshal(message2)
 
 	redis_broker := event_broker.RedisBroker{Client: redis_client}
-
 	go func() {
-		err = redis_broker.Read(ctx, log, channels, result_chan, stop)
+		err = redis_broker.Read(ctx, log, channels, result_chan, stop_chan)
 		require.NoError(t, err)
 	}()
 
-	messages := <-result_chan
+	time.Sleep(1 * time.Second)
+	redis_client.Publish(ctx, channel_name, messageJson)
+	redis_client.Publish(ctx, channel_name, messageJson2)
 
-	require.Len(t, messages, 2)
-	require.Equal(t, messages[0]["Text"], "hello world")
-	require.Equal(t, messages[0]["Username"], "PAVEL")
-	require.Equal(t, messages[1]["Text"], "User send message")
-	require.Equal(t, messages[1]["Username"], "Egor")
+	recievedMessage1 := <-result_chan
+	recievedMessage2 := <-result_chan
 
-	// SEND MESSAGE TO CHANNEL
-	_, err = redis_client.XAdd(ctx, &redis.XAddArgs{
-		Stream: channel_name,
-		Values: message,
-	}).Result()
+	require.Equal(t, recievedMessage1["Text"], "Hello everyone")
+	require.Equal(t, recievedMessage1["Username"], "test_username")
 
-	require.NoError(t, err)
+	require.Equal(t, recievedMessage2["Text"], "Hello everyone2")
+	require.Equal(t, recievedMessage2["Username"], "test_username2")
 
-	// READ MESSAGE FROM CHANNEL
-	messages = <-result_chan
+	redis_client.Publish(ctx, channel_name, messageJson)
 
-	require.Len(t, messages, 1)
-	require.Equal(t, messages[0]["Text"], "hello world")
-	require.Equal(t, messages[0]["Username"], "PAVEL")
-
-	close(stop)
+	recievedMessage3 := <-result_chan
+	require.Equal(t, recievedMessage3["Text"], "Hello everyone")
+	require.Equal(t, recievedMessage3["Username"], "test_username")
 }

@@ -8,7 +8,7 @@ import (
 
 type BrokerMessage = map[string]interface{}
 
-type BrokerInterface interface {
+type Broker interface {
 	Publish(
 		ctx context.Context,
 		log *logrus.Logger,
@@ -18,8 +18,6 @@ type BrokerInterface interface {
 	Read(
 		ctx context.Context,
 		log *logrus.Logger,
-		keys []string,
-		channel chan []BrokerMessage,
-		stop chan struct{},
-	) error
+		channelKeys map[string]string,
+	) ([]BrokerMessage, error)
 }

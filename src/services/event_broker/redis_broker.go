@@ -2,6 +2,7 @@ package event_broker
 
 import (
 	"context"
+	"encoding/json"
 	"messanger/src/errors/broker_errors"
 	"messanger/src/utils"
 
@@ -20,6 +21,7 @@ func (rb *RedisBroker) Publish(
 	keys []string,
 	message interface{},
 ) error {
+	// TODO move this logic to publisher
 	mapped_message := utils.ConvertStructToMap(message)
 	var channelsToRepublish []string
 
@@ -58,45 +60,82 @@ func (rb *RedisBroker) Publish(
 func (rb *RedisBroker) Read(
 	ctx context.Context,
 	log *logrus.Logger,
-	keys []string,
-	channel chan []BrokerMessage,
-	stop chan struct{},
+	channels []string,
+	result_chan chan BrokerMessage,
+	stop chan interface{},
 ) error {
-	messages := []BrokerMessage{}
+	pubsub := rb.Client.Subscribe(ctx, channels...)
+	defer pubsub.Close()
 
-	streamIds := make(map[string]string, len(keys))
-	for _, key := range keys {
-		streamIds[key] = "0-0"
-	}
-	streamsWithIds := buildStreamIds(streamIds, len(keys)*2)
-
+	ch := pubsub.Channel()
 	for {
 		select {
 		case <-stop:
 			return nil
-		default:
-			streams, err := rb.Client.XRead(ctx, &redis.XReadArgs{
-				Streams: streamsWithIds,
-				Count:   10,
-				Block:   1000,
-			}).Result()
+		case msg := <-ch:
+			message, err := convertToMessage(msg.Payload)
 			if err != nil {
-				log.Errorf("could not add entry to stream: %v", err)
-				return broker_errors.ErrBrokerReadMessage
+				log.Errorf("Failed to convert message: %v", err)
+				// TODO add error handling
+				continue
 			}
-
-			for _, stream := range streams {
-				for _, message := range stream.Messages {
-					messages = append(messages, message.Values)
-					streamIds[stream.Stream] = message.ID
-				}
-			}
-			channel <- messages
-			messages = []BrokerMessage{}
-			streamsWithIds = buildStreamIds(streamIds, len(keys)*2)
+			result_chan <- message
 		}
 	}
 }
+
+func convertToMessage(rawMessage string) (BrokerMessage, error) {
+	message := BrokerMessage{}
+	err := json.Unmarshal([]byte(rawMessage), &message)
+	if err != nil {
+		return nil, err
+	}
+	return message, nil
+}
+
+// func (rb *RedisBroker) Read(
+// 	ctx context.Context,
+// 	log *logrus.Logger,
+// 	channelKeys map[string]string,
+// ) ([]BrokerMessage, error) {
+// 	messages := []BrokerMessage{}
+// 	streamsWithIds := buildStreamIds(channelKeys, len(channelKeys)*2)
+// 	// Group:    "chat_group",
+// 	// Consumer: consumerName,
+// 	// Streams:  channels, // Use all chat channels
+// 	// Count:    10,
+// 	// Block:    2000,
+// 	fmt.Println("CONNECTING TO REDIS", streamsWithIds)
+// 	streams, err := rb.Client.XReadGroup(ctx, &redis.XReadGroupArgs{
+// 		Streams:  streamsWithIds,
+// 		Consumer: "123",
+// 		Group:    "chat_group",
+// 		Count:    10,
+// 		Block:    2000,
+// 	}).Result()
+// 	// streams, err := rb.Client.XRead(ctx, &redis.XReadArgs{
+// 	// 	Streams: streamsWithIds,
+// 	// 	Count:   10,
+// 	// 	Block:   5000,
+// 	// }).Result()
+// 	fmt.Println("CONNECTED TO REDIS")
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	for _, stream := range streams {
+// 		for _, message := range stream.Messages {
+// 			_, err := rb.Client.XAck(ctx, stream.Stream, "chat_group", message.ID).Result()
+// 			if err != nil {
+// 				log.Printf("Failed to acknowledge message: %v", err)
+// 			}
+// 			messages = append(messages, message.Values)
+// 			channelKeys[stream.Stream] = message.ID
+// 		}
+// 	}
+// 	fmt.Println("MESSAGES", messages)
+// 	return messages, nil
+// }
 
 func publish(
 	ctx context.Context,

@@ -2,7 +2,7 @@ package event_handlers
 
 import (
 	"context"
-	"messanger/src/events"
+	"messanger/src/enums/event"
 	"messanger/src/events/request_events"
 	"messanger/src/services/messages"
 
@@ -14,19 +14,19 @@ func GetMessagesEventHandler(
 	ctx context.Context,
 	pool *pgxpool.Pool,
 	log *logrus.Logger,
-	event request_events.GetMessagesEventRequest,
+	eventData request_events.GetMessagesEventRequest,
 ) (request_events.GetMessagesEventResponse, error) {
-	messages, err := messages.GetMessagesForDialog(ctx, pool, log, event)
+	messages, err := messages.GetMessagesForDialog(ctx, pool, log, eventData)
 	if err != nil {
 		return request_events.GetMessagesEventResponse{
-			EventType: events.Response,
-			Status:    events.Error,
+			EventType: event.Response,
+			Status:    event.Error,
 			Detail:    err.Error(),
 		}, err
 	}
 	return request_events.GetMessagesEventResponse{
-		EventType: events.Response,
-		Status:    events.Success,
+		EventType: event.Response,
+		Status:    event.Success,
 		Messages:  messages,
 	}, nil
 }
