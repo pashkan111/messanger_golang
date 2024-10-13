@@ -29,12 +29,27 @@ func ConsumeEvents(
 		case <-key_changed:
 			streamIds = buildStreamIds(keys, streamIds)
 		default:
-			messages, err := broker.Read(ctx, log, streamIds)
-			if err != nil {
+			messagesChan := make(chan []event_broker.BrokerMessage)
+			errChan := make(chan error)
+
+			go func() {
+				messages, err := broker.Read(ctx, log, streamIds)
+				if err != nil {
+					errChan <- err
+					return
+				}
+				messagesChan <- messages
+			}()
+
+			select {
+			case <-stop:
+				return nil
+			case err := <-errChan:
 				log.Errorf("could not add entry to stream: %v", err)
 				return broker_errors.ErrBrokerReadMessage
+			case messages := <-messagesChan:
+				result_chan <- messages
 			}
-			result_chan <- messages
 		}
 	}
 }

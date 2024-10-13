@@ -2,7 +2,6 @@ package tests
 
 import (
 	"context"
-	"encoding/json"
 	"messanger/src/services/event_broker"
 	"testing"
 	"time"
@@ -13,7 +12,6 @@ import (
 )
 
 func TestRedisBroker__MessageSentToChannel(t *testing.T) {
-	// setup
 	ctx := context.Background()
 	log := SetupLogger()
 	redis_client, cleanup, err := SetupTestRedisPool(ctx, log)
@@ -59,50 +57,70 @@ func TestRedisBroker__MessageReadFromChannel(t *testing.T) {
 	log := SetupLogger()
 	redis_client, cleanup, err := SetupTestRedisPool(ctx, log)
 	require.NoError(t, err)
-
 	defer cleanup()
 
 	channel_name := "test_channel"
 	channel_name2 := "test_channel2"
-
-	channels := []string{channel_name, channel_name2}
-
-	result_chan := make(chan event_broker.BrokerMessage, 2)
-	stop_chan := make(chan interface{})
-
-	type Message struct {
-		Text     string
-		Username string
+	channelKeys := map[string]string{
+		channel_name:  "$",
+		channel_name2: "$",
 	}
 
-	message := Message{Text: "Hello everyone", Username: "test_username"}
-	message2 := Message{Text: "Hello everyone2", Username: "test_username2"}
+	message := map[string]interface{}{
+		"Text":     "hello world",
+		"Username": "PAVEL",
+	}
+	message2 := map[string]interface{}{
+		"Text":     "User sent message",
+		"Username": "Egor",
+	}
 
-	messageJson, _ := json.Marshal(message)
-	messageJson2, _ := json.Marshal(message2)
-
-	redis_broker := event_broker.RedisBroker{Client: redis_client}
 	go func() {
-		err = redis_broker.Read(ctx, log, channels, result_chan, stop_chan)
-		require.NoError(t, err)
+		time.Sleep(500 * time.Millisecond)
+		redis_client.XAdd(ctx, &redis.XAddArgs{
+			Stream: channel_name,
+			Values: message,
+		})
 	}()
 
-	time.Sleep(1 * time.Second)
-	redis_client.Publish(ctx, channel_name, messageJson)
-	redis_client.Publish(ctx, channel_name, messageJson2)
+	go func() {
+		time.Sleep(550 * time.Millisecond)
+		redis_client.XAdd(ctx, &redis.XAddArgs{
+			Stream: channel_name2,
+			Values: message2,
+		})
+	}()
 
-	recievedMessage1 := <-result_chan
-	recievedMessage2 := <-result_chan
+	var messages []event_broker.BrokerMessage
 
-	require.Equal(t, recievedMessage1["Text"], "Hello everyone")
-	require.Equal(t, recievedMessage1["Username"], "test_username")
+	redis_broker := event_broker.RedisBroker{Client: redis_client}
+	for i := 0; i < 2; i++ {
+		message, err := redis_broker.Read(ctx, log, channelKeys)
+		require.NoError(t, err)
+		messages = append(messages, message...)
+	}
 
-	require.Equal(t, recievedMessage2["Text"], "Hello everyone2")
-	require.Equal(t, recievedMessage2["Username"], "test_username2")
+	require.Len(t, messages, 2)
+	require.Equal(t, messages[0]["Text"], "hello world")
+	require.Equal(t, messages[0]["Username"], "PAVEL")
+	require.Equal(t, messages[1]["Text"], "User sent message")
+	require.Equal(t, messages[1]["Username"], "Egor")
 
-	redis_client.Publish(ctx, channel_name, messageJson)
+	// SEND MESSAGE TO CHANNEL AGAIN
+	go func() {
+		time.Sleep(1 * time.Second)
+		redis_client.XAdd(ctx, &redis.XAddArgs{
+			Stream: channel_name,
+			Values: message,
+		})
+	}()
 
-	recievedMessage3 := <-result_chan
-	require.Equal(t, recievedMessage3["Text"], "Hello everyone")
-	require.Equal(t, recievedMessage3["Username"], "test_username")
+	require.NoError(t, err)
+	messages, err = redis_broker.Read(ctx, log, channelKeys)
+	require.NoError(t, err)
+
+	// READ MESSAGE FROM CHANNEL
+	require.Len(t, messages, 1)
+	require.Equal(t, messages[0]["Text"], "hello world")
+	require.Equal(t, messages[0]["Username"], "PAVEL")
 }
