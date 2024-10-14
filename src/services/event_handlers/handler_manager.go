@@ -3,8 +3,8 @@ package event_handlers
 import (
 	"context"
 	"encoding/json"
+	"messanger/src/enums/event"
 	event_types "messanger/src/enums/event"
-	"messanger/src/events/queue"
 	"messanger/src/events/request_events"
 
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -16,90 +16,85 @@ func HandleEvent(
 	pool *pgxpool.Pool,
 	log *logrus.Logger,
 	current_user_id int,
-	event []byte,
-) (interface{}, error) {
-	var queue_event queue.EventQueueWithRawEvent
-	err := json.Unmarshal(event, &queue_event)
-	if err != nil {
-		log.Error("Error with unmarshalling event:", err)
-		return nil, err
-	}
-
-	if queue_event.UserID != current_user_id {
-		// send to front
-		return nil, nil
-	}
+	eventData []byte,
+) (interface{}, event.ClientRequestEvent, error) {
 
 	var base_event request_events.BaseEventRequest
-	err = json.Unmarshal(queue_event.EventData, &base_event)
+	err := json.Unmarshal(eventData, &base_event)
 	if err != nil {
 		log.Error("Error with unmarshalling event:", err)
-		return nil, err
+		return nil, "", err
 	}
 
 	switch base_event.RequestEventType {
 	case event_types.GetChatsRequestEvent:
 		var get_chats_event request_events.GetChatsEventRequest
-		err := json.Unmarshal(queue_event.EventData, &get_chats_event)
+		err := json.Unmarshal(eventData, &get_chats_event)
 		if err != nil {
 			log.Error("Error with unmarshalling event:", err)
-			return nil, err
+			return nil, "", err
 		}
-		return GetChatsEventHandler(ctx, pool, log, get_chats_event)
+		response, err := GetChatsEventHandler(ctx, pool, log, get_chats_event)
+		return response, event.GetChatsRequestEvent, err
 
 	case event_types.GetMessagesRequestEvent:
 		var get_messages_event request_events.GetMessagesEventRequest
-		err := json.Unmarshal(queue_event.EventData, &get_messages_event)
+		err := json.Unmarshal(eventData, &get_messages_event)
 		if err != nil {
 			log.Error("Error with unmarshalling event:", err)
-			return nil, err
+			return nil, "", err
 		}
-		return GetMessagesEventHandler(ctx, pool, log, get_messages_event)
+		response, err := GetMessagesEventHandler(ctx, pool, log, get_messages_event)
+		return response, event.GetMessagesRequestEvent, err
 
 	case event_types.CreateMessageRequestEvent:
 		var create_message_event request_events.CreateMessageEventRequest
-		err := json.Unmarshal(queue_event.EventData, &create_message_event)
+		err := json.Unmarshal(eventData, &create_message_event)
 		if err != nil {
 			log.Error("Error with unmarshalling event:", err)
-			return nil, err
+			return nil, "", err
 		}
-		return CreateMessageEventHandler(ctx, pool, log, create_message_event)
+		response, err := CreateMessageEventHandler(ctx, pool, log, create_message_event)
+		return response, event.CreateMessageRequestEvent, err
 
 	case event_types.UpdateMessageRequestEvent:
 		var update_message_event request_events.UpdateMessageEventRequest
-		err := json.Unmarshal(queue_event.EventData, &update_message_event)
+		err := json.Unmarshal(eventData, &update_message_event)
 		if err != nil {
 			log.Error("Error with unmarshalling event:", err)
-			return nil, err
+			return nil, "", err
 		}
-		return UpdateMessageEventHandler(ctx, pool, log, update_message_event)
+		response, err := UpdateMessageEventHandler(ctx, pool, log, update_message_event)
+		return response, event.UpdateMessageRequestEvent, err
 
 	case event_types.DeleteMessageRequestEvent:
 		var delete_message_event request_events.DeleteMessageEventRequest
-		err := json.Unmarshal(queue_event.EventData, &delete_message_event)
+		err := json.Unmarshal(eventData, &delete_message_event)
 		if err != nil {
 			log.Error("Error with unmarshalling event:", err)
-			return nil, err
+			return nil, "", err
 		}
 
 	case event_types.CreateDialogRequestEvent:
 		var create_chat_event request_events.CreateDialogEventRequest
-		err := json.Unmarshal(queue_event.EventData, &create_chat_event)
+		err := json.Unmarshal(eventData, &create_chat_event)
 		if err != nil {
 			log.Error("Error with unmarshalling event:", err)
-			return nil, err
+			return nil, "", err
 		}
-		return CreateDialogEventHandler(ctx, pool, log, create_chat_event)
+		response, err := CreateDialogEventHandler(ctx, pool, log, create_chat_event)
+		return response, event.CreateDialogRequestEvent, err
 
 	case event_types.DeleteDialogRequestEvent:
 		var delete_dialog_event request_events.DeleteDialogEventRequest
-		err := json.Unmarshal(queue_event.EventData, &delete_dialog_event)
+		err := json.Unmarshal(eventData, &delete_dialog_event)
 		if err != nil {
 			log.Error("Error with unmarshalling event:", err)
-			return nil, err
+			return nil, "", err
 		}
-		return DeleteDialogEventHandler(ctx, pool, log, delete_dialog_event)
+		response, err := DeleteDialogEventHandler(ctx, pool, log, delete_dialog_event)
+		return response, event.DeleteDialogRequestEvent, err
 	}
 	log.Errorf("Unknown event type %s", base_event.RequestEventType)
-	return nil, nil
+	return nil, "", nil
 }

@@ -15,17 +15,3 @@ TODO:
 2. Write redis impl
 3. Write consumer
 4. Write func that would check 
-
-
-when establish ws connection, client sends first event - GET_CHATS
-It is an ENTRY POINT
-
-We get all user chats, send them to client and create a consumer that connects 
-    to redis stream channels of dialog ids
-
-Then after every action like Create smth, we publish message to the 
-    appropriate channel
-
-Accordingly, other consumers that had been ran by other ws handlers
-    consume messages from appropriate channels and if in one of these
-    channel arrives a message, consumer handles it and sends data to client
