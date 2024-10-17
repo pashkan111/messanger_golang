@@ -12,7 +12,7 @@ type Broker interface {
 	Publish(
 		ctx context.Context,
 		log *logrus.Logger,
-		keys []string,
+		channel string,
 		message interface{},
 	) error
 	Read(

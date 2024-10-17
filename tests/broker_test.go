@@ -11,6 +11,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type Message struct {
+	Text     string
+	Username string
+}
+
 func TestRedisBroker__MessageSentToChannel(t *testing.T) {
 	ctx := context.Background()
 	log := SetupLogger()
@@ -19,20 +24,17 @@ func TestRedisBroker__MessageSentToChannel(t *testing.T) {
 
 	defer cleanup()
 
-	type Message struct {
-		Text     string
-		Username string
-	}
-
 	message_to_send := Message{Text: "Hello everyone", Username: "test_username"}
 	channel_name := "test_channel1"
 	channel_name2 := "test_channel2"
 
-	channels := []string{channel_name, channel_name2}
 	channelsToRead := []string{channel_name, channel_name2, "0-0", "0-0"}
 
 	redis_broker := event_broker.RedisBroker{Client: redis_client}
-	err = redis_broker.Publish(ctx, log, channels, message_to_send)
+	err = redis_broker.Publish(ctx, log, channel_name, message_to_send)
+	require.NoError(t, err)
+
+	err = redis_broker.Publish(ctx, log, channel_name2, message_to_send)
 	require.NoError(t, err)
 
 	streams, err := redis_client.XRead(ctx, &redis.XReadArgs{
@@ -123,4 +125,44 @@ func TestRedisBroker__MessageReadFromChannel(t *testing.T) {
 	require.Len(t, messages, 1)
 	require.Equal(t, messages[0]["Text"], "hello world")
 	require.Equal(t, messages[0]["Username"], "PAVEL")
+}
+
+func TestPublishToStream(t *testing.T) {
+	ctx := context.Background()
+	log := SetupLogger()
+	redis_client, cleanup, err := SetupTestRedisPool(ctx, log)
+	require.NoError(t, err)
+	defer cleanup()
+
+	channel_name := "test_channel"
+	channel_name2 := "test_channel2"
+	channel_name3 := "test_channel3"
+
+	channels := []string{channel_name, channel_name2, channel_name3}
+	channelsToRead := []string{channel_name, channel_name2, channel_name3, "0-0", "0-0", "0-0"}
+
+	message := Message{
+		Text:     "hello world",
+		Username: "PAVEL",
+	}
+
+	redis_broker := event_broker.RedisBroker{Client: redis_client}
+	err = event_broker.PublishToStream(ctx, log, channels, message, &redis_broker)
+	require.NoError(t, err)
+
+	streams, err := redis_client.XRead(ctx, &redis.XReadArgs{
+		Streams: channelsToRead,
+		Count:   10,
+		Block:   0,
+	}).Result()
+
+	require.NoError(t, err)
+	require.Len(t, streams, 3)
+
+	for _, stream := range streams {
+		for _, message := range stream.Messages {
+			require.Equal(t, message.Values["Text"], "hello world")
+			require.Equal(t, message.Values["Username"], "PAVEL")
+		}
+	}
 }

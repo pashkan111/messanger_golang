@@ -8,10 +8,9 @@ Actions when connecting to backend by ws:
     5. Run a consumer, pass ids of the chats and 
         the consumer starts listening channels of such chats.
         When he receives a message, he send it to frontend
+    
+WHEN consumer reads message it should only check user id of it
+and if id does not match the current user id it should send this event to front
 
-
-TODO:
-1. Write an interface of PubSub
-2. Write redis impl
-3. Write consumer
-4. Write func that would check 
+TODO 
+1. create a function to handle messages from the websocket connection

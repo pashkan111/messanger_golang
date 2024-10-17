@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"messanger/src/dependencies"
+	"messanger/src/services/event_broker"
 	"messanger/src/views/api"
 	"messanger/src/views/ws"
 
@@ -19,13 +20,17 @@ func main() {
 	defer cancel()
 	log := dependencies.GetLogger()
 	postgres_pool := dependencies.GetPostgresPool(ctx, log)
-	// redis_pool := dependencies.GetRedisPool(ctx, log)
+	redis_pool := dependencies.GetRedisPool(ctx, log)
+	broker := event_broker.RedisBroker{Client: redis_pool}
 
 	router := mux.NewRouter()
-	api.InitAuthRoutes(router, postgres_pool, log)
-	// api.InitMessageRoutes(router, postgres_pool, log)
 
-	ws.InitChatRoutes(router, postgres_pool, log)
+	authHandler := api.NewAuthHandler(postgres_pool, log)
+	router.HandleFunc("/auth/register", authHandler.RegisterUser).Methods("POST")
+	router.HandleFunc("/auth/login", authHandler.LoginUser).Methods("POST")
+
+	wsHandler := ws.NewWSHandler(postgres_pool, log, &broker)
+	router.HandleFunc("/process-events", wsHandler.HandleConnections)
 
 	fmt.Println("Server is running on port 8080")
 	srv := &http.Server{

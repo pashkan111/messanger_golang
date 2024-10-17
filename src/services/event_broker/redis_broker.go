@@ -2,7 +2,6 @@ package event_broker
 
 import (
 	"context"
-	"messanger/src/errors/broker_errors"
 	"messanger/src/utils"
 
 	"github.com/sirupsen/logrus"
@@ -17,43 +16,15 @@ type RedisBroker struct {
 func (rb *RedisBroker) Publish(
 	ctx context.Context,
 	log *logrus.Logger,
-	channels []string,
+	channel string,
 	message interface{},
 ) error {
-	// TODO move this logic to publisher
 	mapped_message := utils.ConvertStructToMap(message)
-	var channelsToRepublish []string
-
-	for _, channel := range channels {
-		err := publish(ctx, rb.Client, channel, mapped_message)
-		if err != nil {
-			log.Errorf("could not add entry to stream: %v", err)
-			channelsToRepublish = append(channelsToRepublish, channel)
-		}
-	}
-	if len(channelsToRepublish) == 0 {
-		return nil
-	}
-
-	attempsToRepublish := 3
-	var notProcessed = map[string]interface{}{}
-
-	for i := 0; i < attempsToRepublish; i++ {
-		for _, channel := range channelsToRepublish {
-			err := publish(ctx, rb.Client, channel, mapped_message)
-			if err == nil {
-				delete(notProcessed, channel)
-			}
-		}
-		if len(notProcessed) == 0 {
-			return nil
-		}
-		if i == attempsToRepublish-1 {
-			log.Errorf("could not add entry to stream %v", notProcessed)
-			return broker_errors.ErrBrokerSendMessage
-		}
-	}
-	return nil
+	_, err := rb.Client.XAdd(ctx, &redis.XAddArgs{
+		Stream: channel,
+		Values: mapped_message,
+	}).Result()
+	return err
 }
 
 func (rb *RedisBroker) Read(
@@ -64,6 +35,7 @@ func (rb *RedisBroker) Read(
 	messages := []BrokerMessage{}
 	streamsWithIds := buildStreamIds(channelKeys, len(channelKeys)*2)
 
+	log.Info("Reading from streams: ", streamsWithIds)
 	streams, err := rb.Client.XRead(ctx, &redis.XReadArgs{
 		Streams: streamsWithIds,
 		Count:   10,
@@ -80,19 +52,6 @@ func (rb *RedisBroker) Read(
 		}
 	}
 	return messages, nil
-}
-
-func publish(
-	ctx context.Context,
-	client *redis.Client,
-	channel string,
-	message interface{},
-) error {
-	_, err := client.XAdd(ctx, &redis.XAddArgs{
-		Stream: channel,
-		Values: message,
-	}).Result()
-	return err
 }
 
 func buildStreamIds(streamIds map[string]string, length int) []string {

@@ -4,6 +4,7 @@ import (
 	"context"
 	event_enums "messanger/src/enums/event"
 	"messanger/src/events/request_events"
+	"messanger/src/services/event_broker"
 	"messanger/src/services/messages"
 
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -15,8 +16,10 @@ func CreateMessageEventHandler(
 	pool *pgxpool.Pool,
 	log *logrus.Logger,
 	event request_events.CreateMessageEventRequest,
+	currentUserId int,
+	broker event_broker.Broker,
 ) (request_events.CreateMessageEventResponse, error) {
-	createdMessageId, err := messages.CreateMessage(ctx, pool, log, event)
+	createdMessageId, err := messages.CreateMessage(ctx, pool, log, event, currentUserId, broker)
 	if err != nil {
 		return request_events.CreateMessageEventResponse{
 			MessageId: nil,

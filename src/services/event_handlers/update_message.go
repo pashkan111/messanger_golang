@@ -4,6 +4,7 @@ import (
 	"context"
 	event_enums "messanger/src/enums/event"
 	"messanger/src/events/request_events"
+	"messanger/src/services/event_broker"
 	"messanger/src/services/messages"
 
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -15,8 +16,10 @@ func UpdateMessageEventHandler(
 	pool *pgxpool.Pool,
 	log *logrus.Logger,
 	event request_events.UpdateMessageEventRequest,
+	currentUserId int,
+	broker event_broker.Broker,
 ) (request_events.UpdateMessageEventResponse, error) {
-	err := messages.UpdateMessage(ctx, pool, log, event)
+	err := messages.UpdateMessage(ctx, pool, log, event, currentUserId, broker)
 	if err != nil {
 		return request_events.UpdateMessageEventResponse{
 			EventType: event_enums.Response,

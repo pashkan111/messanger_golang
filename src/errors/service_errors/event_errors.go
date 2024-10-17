@@ -1,5 +1,9 @@
 package service_errors
 
+import "errors"
+
+var ErrNoEventType = errors.New("no event type")
+
 type ErrObjectNotFound struct {
 	Detail string
 }

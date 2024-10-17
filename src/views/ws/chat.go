@@ -8,6 +8,7 @@ import (
 	"messanger/src/services/chats"
 	"messanger/src/services/consumers"
 	"messanger/src/services/event_broker"
+	"messanger/src/services/event_handlers"
 	"net/http"
 
 	"github.com/gorilla/websocket"
@@ -67,13 +68,21 @@ func (h *WSHandler) HandleConnections(w http.ResponseWriter, r *http.Request) {
 		httpError(w, "Websocket connect error", http.StatusBadRequest)
 		return
 	}
-	defer ws.Close()
 
 	wsChannel := make(chan interface{})
 	messagesChannel := make(chan []event_broker.BrokerMessage)
 	stop := make(chan interface{})
 	keyChanged := make(chan interface{})
 	channels := getChannelsKeysForUser(dialogsForListing)
+
+	defer func() {
+		close(stop)
+		close(wsChannel)
+		close(messagesChannel)
+		close(keyChanged)
+
+		ws.Close()
+	}()
 
 	go func() {
 		err := consumers.ConsumeEvents(
@@ -93,33 +102,35 @@ func (h *WSHandler) HandleConnections(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	go func() {
-		ReadWSMessages(ws, wsChannel)
+		readWSMessages(ws, wsChannel)
 	}()
 
 	for {
 		select {
 		case <-stop:
 			return
-		case <-keyChanged:
-			streamIds = buildStreamIds(channels, streamIds)
+		// case <-keyChanged:
+		// 	streamIds = buildStreamIds(channels, streamIds)
 		case message := <-wsChannel:
-
+			event_handlers.HandleEvent(
+				r.Context(),
+				h.pool,
+				h.log,
+				user.Id,
+				message.([]byte),
+				h.messageBroker,
+			)
 		}
 	}
-
 }
 
-func ReadWSMessages(ws *websocket.Conn, wsChannel chan interface{}) {
+func readWSMessages(ws *websocket.Conn, wsChannel chan interface{}) {
 	for {
-		messageType, message, err := ws.ReadMessage()
+		_, message, err := ws.ReadMessage()
 		if err != nil {
 			break
 		}
-
-		err = ws.WriteMessage(messageType, message)
-		if err != nil {
-			break
-		}
+		wsChannel <- message
 	}
 }
 

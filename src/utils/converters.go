@@ -1,6 +1,9 @@
 package utils
 
-import "reflect"
+import (
+	"reflect"
+	"strconv"
+)
 
 func ConvertStructToMap(obj interface{}) map[string]interface{} {
 	result := make(map[string]interface{})
@@ -31,4 +34,8 @@ func ConvertMapToStruct(m map[string]interface{}, obj interface{}) {
 		fieldName := typ.Field(i).Name
 		field.Set(reflect.ValueOf(m[fieldName]))
 	}
+}
+
+func ConvertIntToString(i int) string {
+	return strconv.Itoa(i)
 }

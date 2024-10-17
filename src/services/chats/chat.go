@@ -5,7 +5,10 @@ import (
 	"errors"
 	"messanger/src/entities/message_entities"
 	"messanger/src/errors/repo_errors"
+	"messanger/src/events/queue"
 	"messanger/src/events/request_events"
+	"messanger/src/services/event_broker"
+	"messanger/src/utils"
 	"sort"
 
 	"messanger/src/entities/dialog_entities"
@@ -116,15 +119,27 @@ func DeleteDialog(
 	ctx context.Context,
 	pool *pgxpool.Pool,
 	log *logrus.Logger,
-	dialog request_events.DeleteDialogEventRequest,
+	event request_events.DeleteDialogEventRequest,
+	currentUserId int,
+	broker event_broker.Broker,
 ) error {
 	var err error
-	if dialog.DeleteForBoth {
-		err = postgres_repos.DeleteDialogForAllParticipants(ctx, pool, log, dialog.DialogId)
+	if event.DeleteForBoth {
+		event_broker.PublishToStream(
+			ctx,
+			log,
+			[]string{utils.ConvertIntToString(event.DialogId)},
+			queue.QueueEvent{
+				UserID:    currentUserId,
+				EventData: event,
+			},
+			broker,
+		)
+		err = postgres_repos.DeleteDialogForAllParticipants(ctx, pool, log, event.DialogId)
 	} else {
 		err = postgres_repos.DeleteDialogForOneParticipant(ctx, pool, log, &dialog_entities.DeleteDialogForUser{
-			DialogId: dialog.DialogId,
-			UserId:   dialog.UserId,
+			DialogId: event.DialogId,
+			UserId:   event.UserId,
 		})
 	}
 	return err

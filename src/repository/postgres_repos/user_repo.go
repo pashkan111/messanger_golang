@@ -85,9 +85,9 @@ func GetUserByID(
 	).Scan(
 		&user.Id,
 		&user.Username,
-		&chats,
 		&user.Password,
 		&user.Phone,
+		&chats,
 	)
 	if err != nil {
 		if err.Error() == pgx.ErrNoRows.Error() {
