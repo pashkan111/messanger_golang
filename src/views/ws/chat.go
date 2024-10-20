@@ -33,13 +33,13 @@ func httpError(w http.ResponseWriter, message string, statusCode int) {
 }
 
 type WSHandler struct {
-	pool          *pgxpool.Pool
-	log           *logrus.Logger
-	messageBroker event_broker.Broker
+	Pool          *pgxpool.Pool
+	Log           *logrus.Logger
+	MessageBroker event_broker.Broker
 }
 
 func NewWSHandler(pool *pgxpool.Pool, log *logrus.Logger, messageBroker event_broker.Broker) *WSHandler {
-	return &WSHandler{pool: pool, log: log, messageBroker: messageBroker}
+	return &WSHandler{Pool: pool, Log: log, MessageBroker: messageBroker}
 }
 
 func (h *WSHandler) HandleConnections(w http.ResponseWriter, r *http.Request) {
@@ -49,13 +49,13 @@ func (h *WSHandler) HandleConnections(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := auth.GetUserByToken(r.Context(), h.pool, h.log, entities.Token(token))
+	user, err := auth.GetUserByToken(r.Context(), h.Pool, h.Log, entities.Token(token))
 	if err != nil {
 		httpError(w, "Invalid token", http.StatusUnauthorized)
 		return
 	}
 
-	dialogsForListing, err := chats.GetDialogsForListing(r.Context(), h.pool, h.log, user.Id)
+	dialogsForListing, err := chats.GetDialogsForListing(r.Context(), h.Pool, h.Log, user.Id)
 
 	if err != nil {
 		httpError(w, "Internal server error", http.StatusInternalServerError)
@@ -64,7 +64,7 @@ func (h *WSHandler) HandleConnections(w http.ResponseWriter, r *http.Request) {
 
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		h.log.Error("Websocket connect error:", err)
+		h.Log.Error("Websocket connect error:", err)
 		httpError(w, "Websocket connect error", http.StatusBadRequest)
 		return
 	}
@@ -87,15 +87,15 @@ func (h *WSHandler) HandleConnections(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		err := consumers.ConsumeEvents(
 			r.Context(),
-			h.log,
-			h.messageBroker,
+			h.Log,
+			h.MessageBroker,
 			channels,
 			messagesChannel,
 			stop,
 			keyChanged,
 		)
 		if err != nil {
-			h.log.Errorf("could not consume events: %v", err)
+			h.Log.Errorf("could not consume events: %v", err)
 			httpError(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
@@ -112,14 +112,23 @@ func (h *WSHandler) HandleConnections(w http.ResponseWriter, r *http.Request) {
 		// case <-keyChanged:
 		// 	streamIds = buildStreamIds(channels, streamIds)
 		case message := <-wsChannel:
-			event_handlers.HandleEvent(
+			_, err := event_handlers.HandleEvent(
 				r.Context(),
-				h.pool,
-				h.log,
+				h.Pool,
+				h.Log,
 				user.Id,
 				message.([]byte),
-				h.messageBroker,
+				h.MessageBroker,
 			)
+			if err != nil {
+				h.Log.Errorf("could not handle event: %v", err)
+				httpError(w, "Internal server error", http.StatusInternalServerError)
+				return
+			}
+		case messagesFromConsumer := <-messagesChannel:
+			for _, message := range messagesFromConsumer {
+				fmt.Println("Messages from consumer", message["message"])
+			}
 		}
 	}
 }

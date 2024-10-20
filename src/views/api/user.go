@@ -17,12 +17,12 @@ import (
 )
 
 type AuthHandler struct {
-	pool *pgxpool.Pool
-	log  *logrus.Logger
+	Pool *pgxpool.Pool
+	Log  *logrus.Logger
 }
 
 func NewAuthHandler(pool *pgxpool.Pool, log *logrus.Logger) *AuthHandler {
-	return &AuthHandler{pool: pool, log: log}
+	return &AuthHandler{Pool: pool, Log: log}
 }
 
 func (h *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +37,7 @@ func (h *AuthHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokens, err := auth.CreateUser(r.Context(), h.pool, h.log, user_data_validated)
+	tokens, err := auth.CreateUser(r.Context(), h.Pool, h.Log, user_data_validated)
 
 	if err != nil {
 		var response interface{}
@@ -75,7 +75,7 @@ func (h *AuthHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokens, err := auth.LoginUser(r.Context(), h.pool, h.log, user_data_validated)
+	tokens, err := auth.LoginUser(r.Context(), h.Pool, h.Log, user_data_validated)
 	if err != nil {
 		var response interface{}
 		w.WriteHeader(http.StatusUnauthorized)

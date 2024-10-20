@@ -32,7 +32,7 @@ func CreateMessage(
 	err = conn.QueryRow(
 		ctx,
 		`INSERT INTO dialog_message (text, link, message_type, dialog_id, author_id)
-		VALUES($1, $2, $3, $4)
+		VALUES($1, $2, $3, $4, $5)
 		RETURNING dialog_message_id
 		`,
 		message.Text,
@@ -48,11 +48,13 @@ func CreateMessage(
 			if pg_err.Code == "23503" {
 				log.Errorf("error: %s. Detail: %s", pg_err.Error(), pg_err.Detail)
 				return 0, repo_errors.ErrObjectNotFound
+			} else {
+				log.Error("Error creating message: ", err.Error())
+				return 0, repo_errors.ErrOperationError
 			}
-		} else {
-			log.Error("Error creating message: ", err.Error())
-			return 0, repo_errors.ErrOperationError
 		}
+		log.Error("Error creating message: ", err.Error())
+		return 0, repo_errors.ErrOperationError
 	}
 	return messageId, nil
 }

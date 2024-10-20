@@ -9,7 +9,7 @@ import (
 func GetLogger() *logrus.Logger {
 	log := logrus.New()
 	log.SetFormatter(&logrus.JSONFormatter{})
-	logrus.SetReportCaller(true)
+	log.SetReportCaller(true)
 
 	log.SetOutput(os.Stdout)
 

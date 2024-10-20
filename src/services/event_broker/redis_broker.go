@@ -2,7 +2,7 @@ package event_broker
 
 import (
 	"context"
-	"messanger/src/utils"
+	"encoding/json"
 
 	"github.com/sirupsen/logrus"
 
@@ -19,10 +19,10 @@ func (rb *RedisBroker) Publish(
 	channel string,
 	message interface{},
 ) error {
-	mapped_message := utils.ConvertStructToMap(message)
+	mapped_message, _ := json.Marshal(message)
 	_, err := rb.Client.XAdd(ctx, &redis.XAddArgs{
 		Stream: channel,
-		Values: mapped_message,
+		Values: map[string]interface{}{"message": mapped_message},
 	}).Result()
 	return err
 }
@@ -35,11 +35,10 @@ func (rb *RedisBroker) Read(
 	messages := []BrokerMessage{}
 	streamsWithIds := buildStreamIds(channelKeys, len(channelKeys)*2)
 
-	log.Info("Reading from streams: ", streamsWithIds)
 	streams, err := rb.Client.XRead(ctx, &redis.XReadArgs{
 		Streams: streamsWithIds,
 		Count:   10,
-		Block:   1000,
+		Block:   0,
 	}).Result()
 	if err != nil {
 		return nil, err

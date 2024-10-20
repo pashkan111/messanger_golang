@@ -41,7 +41,7 @@ func CreateMessage(
 	currentUserId int,
 	broker event_broker.Broker,
 ) (int, error) {
-	message_id, err := postgres_repos.CreateMessage(
+	messageId, err := postgres_repos.CreateMessage(
 		ctx, pool, log, event,
 	)
 	if err != nil {
@@ -62,7 +62,7 @@ func CreateMessage(
 		},
 		broker,
 	)
-	return message_id, nil
+	return messageId, nil
 }
 
 func UpdateMessage(

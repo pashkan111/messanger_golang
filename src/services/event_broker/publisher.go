@@ -2,6 +2,7 @@ package event_broker
 
 import (
 	"context"
+	"fmt"
 	"messanger/src/errors/broker_errors"
 
 	"github.com/sirupsen/logrus"
@@ -17,7 +18,8 @@ func PublishToStream(
 	var channelsToRepublish []string
 
 	for _, channel := range channels {
-		err := event_broker.Publish(ctx, log, channel, message)
+		channelName := fmt.Sprintf("dialog:%s", channel)
+		err := event_broker.Publish(ctx, log, channelName, message)
 		if err != nil {
 			log.Errorf("could not add entry to stream: %v", err)
 			channelsToRepublish = append(channelsToRepublish, channel)

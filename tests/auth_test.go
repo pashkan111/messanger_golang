@@ -11,11 +11,25 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/require"
 )
+
+func initAuthRouter(log *logrus.Logger, pool *pgxpool.Pool) *mux.Router {
+	router := mux.NewRouter()
+	handler := api.AuthHandler{
+		Pool: pool,
+		Log:  log,
+	}
+	router.HandleFunc("/register", handler.RegisterUser).Methods("POST")
+	router.HandleFunc("/auth/login", handler.LoginUser).Methods("POST")
+
+	return router
+}
 
 func TestRegisterUserHandler__Success(t *testing.T) {
 	pool, cleanup, err := SetupTestDB()
@@ -23,9 +37,7 @@ func TestRegisterUserHandler__Success(t *testing.T) {
 	defer cleanup()
 
 	log := SetupLogger()
-
-	router := mux.NewRouter()
-	api.InitAuthRoutes(router, pool, log)
+	router := initAuthRouter(log, pool)
 
 	phone := "123456"
 	username := "pashtet1"
@@ -79,9 +91,7 @@ func TestRegisterUserHandler__MissingRequiredFields(t *testing.T) {
 	defer cleanup()
 
 	log := SetupLogger()
-
-	router := mux.NewRouter()
-	api.InitAuthRoutes(router, pool, log)
+	router := initAuthRouter(log, pool)
 
 	user := entities.UserRegisterRequest{
 		Username: "pashtet1",
@@ -113,9 +123,7 @@ func TestRegisterUserHandler__UserAlreadyExist(t *testing.T) {
 	defer cleanup()
 
 	log := SetupLogger()
-
-	router := mux.NewRouter()
-	api.InitAuthRoutes(router, pool, log)
+	router := initAuthRouter(log, pool)
 
 	phone := "123456"
 	username := "pashtet1"
