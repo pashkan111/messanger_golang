@@ -3,6 +3,7 @@ package ws
 import (
 	"fmt"
 	"messanger/src/entities"
+	"messanger/src/entities/api"
 	"messanger/src/entities/dialog_entities"
 	"messanger/src/services/auth"
 	"messanger/src/services/chats"
@@ -12,6 +13,8 @@ import (
 	"net/http"
 
 	"github.com/gorilla/websocket"
+
+	"encoding/json"
 
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/sirupsen/logrus"
@@ -72,7 +75,7 @@ func (h *WSHandler) HandleConnections(w http.ResponseWriter, r *http.Request) {
 	wsChannel := make(chan interface{})
 	messagesChannel := make(chan []event_broker.BrokerMessage)
 	stop := make(chan interface{})
-	keyChanged := make(chan interface{})
+	keyChanged := make(chan []string)
 	channels := getChannelsKeysForUser(dialogsForListing)
 
 	defer func() {
@@ -109,10 +112,8 @@ func (h *WSHandler) HandleConnections(w http.ResponseWriter, r *http.Request) {
 		select {
 		case <-stop:
 			return
-		// case <-keyChanged:
-		// 	streamIds = buildStreamIds(channels, streamIds)
 		case message := <-wsChannel:
-			_, err := event_handlers.HandleEvent(
+			processedMessage, err := event_handlers.HandleEvent(
 				r.Context(),
 				h.Pool,
 				h.Log,
@@ -120,11 +121,13 @@ func (h *WSHandler) HandleConnections(w http.ResponseWriter, r *http.Request) {
 				message.([]byte),
 				h.MessageBroker,
 			)
-			if err != nil {
-				h.Log.Errorf("could not handle event: %v", err)
-				httpError(w, "Internal server error", http.StatusInternalServerError)
-				return
+			if processedMessage == nil && err != nil {
+				processedMessage = api.ErrorResponse{
+					Error: err.Error(),
+				}
 			}
+			jsonMessage, _ := json.Marshal(processedMessage)
+			ws.WriteMessage(websocket.BinaryMessage, jsonMessage)
 		case messagesFromConsumer := <-messagesChannel:
 			for _, message := range messagesFromConsumer {
 				fmt.Println("Messages from consumer", message["message"])

@@ -9,7 +9,7 @@ import (
 
 type GetMessagesEventRequest struct {
 	RequestEventType event.ClientRequestEvent `json:"request_event_type" validate:"required"`
-	DialogId         int                      `json:"chat_id" validate:"required"`
+	DialogId         int                      `json:"dialog_id" validate:"required"`
 	Offset           int                      `json:"offset"`
 	Limit            int                      `json:"limit"`
 }

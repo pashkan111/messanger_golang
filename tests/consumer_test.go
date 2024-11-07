@@ -27,7 +27,7 @@ func TestConsumer(t *testing.T) {
 	redis_broker := &event_broker.RedisBroker{Client: redis_client}
 	result_chan := make(chan []event_broker.BrokerMessage)
 	stop := make(chan interface{})
-	key_changed := make(chan interface{})
+	key_changed := make(chan []string)
 
 	go func() {
 		err := consumers.ConsumeEvents(
@@ -43,6 +43,7 @@ func TestConsumer(t *testing.T) {
 	}()
 
 	time.Sleep(1 * time.Second)
+
 	err = redis_client.XAdd(ctx, &redis.XAddArgs{
 		Stream: channel_name,
 		Values: map[string]interface{}{
@@ -63,7 +64,6 @@ func TestConsumer(t *testing.T) {
 		},
 	}).Err()
 	require.NoError(t, err)
-
 	msg = <-result_chan
 	require.Len(t, msg, 1)
 

@@ -5,9 +5,9 @@ import (
 )
 
 type CreateDialogEventRequest struct {
+	RequestEventType event.ClientRequestEvent `json:"request_event_type" validate:"required"`
 	CreatorId        int                      `json:"creator_id" validate:"required"`
 	ReceiverId       int                      `json:"receiver_id" validate:"required"`
-	RequestEventType event.ClientRequestEvent `json:"request_event_type" validate:"required"`
 }
 
 func (b CreateDialogEventRequest) GetEventType() event.ClientRequestEvent {

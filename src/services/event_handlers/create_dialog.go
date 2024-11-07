@@ -16,7 +16,7 @@ func CreateDialogEventHandler(
 	log *logrus.Logger,
 	event request_events.CreateDialogEventRequest,
 ) (request_events.CreateDialogEventResponse, error) {
-	dialog, err := chats.GetOrCreateDialog(ctx, pool, log, event)
+	dialog, err := chats.CreateDialog(ctx, pool, log, event)
 	if err != nil {
 		return request_events.CreateDialogEventResponse{
 			EventType: event_enums.Response,

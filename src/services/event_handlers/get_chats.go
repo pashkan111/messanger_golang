@@ -16,7 +16,7 @@ func GetChatsEventHandler(
 	log *logrus.Logger,
 	event request_events.GetChatsEventRequest,
 ) (request_events.GetChatsEventResponse, error) {
-	dialogs_for_listing, err := chats.GetDialogsForListing(
+	dialogsForListing, err := chats.GetDialogsForListing(
 		ctx,
 		pool,
 		log,
@@ -32,6 +32,6 @@ func GetChatsEventHandler(
 	return request_events.GetChatsEventResponse{
 		EventType: event_enums.Response,
 		Status:    event_enums.Success,
-		Dialogs:   dialogs_for_listing,
+		Dialogs:   dialogsForListing,
 	}, nil
 }

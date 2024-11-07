@@ -9,21 +9,23 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE TABLE IF NOT EXISTS dialog (
-    dialog_id BIGSERIAL UNIQUE,
+    dialog_id BIGSERIAL PRIMARY KEY,
     deleted_for INTEGER[],
     is_deleted BOOLEAN DEFAULT false,
     creator_id INTEGER REFERENCES users (user_id) ON DELETE CASCADE,
-    receiver_id INTEGER REFERENCES users (user_id) ON DELETE CASCADE,
-    CONSTRAINT dialog_creator_participant_pk PRIMARY KEY (creator_id, receiver_id)
+    receiver_id INTEGER REFERENCES users (user_id) ON DELETE CASCADE
 );
+
+CREATE UNIQUE INDEX unique_dialog_pair
+    ON dialog (LEAST(creator_id, receiver_id), GREATEST(creator_id, receiver_id));
 
 CREATE TABLE IF NOT EXISTS dialog_message (
     dialog_message_id SERIAL PRIMARY KEY,
-    text TEXT NOT NULL,
+    text TEXT DEFAULT null,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     is_read BOOLEAN DEFAULT FALSE,
     message_type message_type DEFAULT 'TEXT',
-    link VARCHAR(255),
+    link VARCHAR(255) ,
     dialog_id INTEGER REFERENCES dialog (dialog_id) ON DELETE CASCADE,
     author_id INTEGER REFERENCES users (user_id) ON DELETE CASCADE
 );

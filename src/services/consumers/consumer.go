@@ -15,20 +15,19 @@ func ConsumeEvents(
 	keys []string,
 	result_chan chan []event_broker.BrokerMessage,
 	stop chan interface{},
-	key_changed chan interface{},
+	key_changed chan []string,
 ) error {
 	streamIds := make(map[string]string, len(keys))
 	for _, key := range keys {
 		streamIds[key] = "$"
 	}
 	log.Info("Consumer started")
-
 	for {
 		select {
 		case <-stop:
 			return nil
-		case <-key_changed:
-			streamIds = buildStreamIds(keys, streamIds)
+		case newChannels := <-key_changed:
+			streamIds = buildStreamIds(newChannels, streamIds)
 		default:
 			if len(streamIds) == 0 {
 				continue

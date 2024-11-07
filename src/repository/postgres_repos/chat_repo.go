@@ -2,9 +2,11 @@ package postgres_repos
 
 import (
 	"context"
+	"errors"
 	"messanger/src/entities/dialog_entities"
 	"messanger/src/errors/repo_errors"
 
+	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/sirupsen/logrus"
@@ -14,7 +16,8 @@ func GetDialog(
 	ctx context.Context,
 	pool *pgxpool.Pool,
 	log *logrus.Logger,
-	userId int,
+	creatorId int,
+	receiverId int,
 ) (*dialog_entities.Dialog, error) {
 	conn, err := pool.Acquire(ctx)
 
@@ -31,14 +34,16 @@ func GetDialog(
 		SELECT 
 			dialog_id,
 			users.username AS receiver_username
-		FROM 
+		FROM
 			dialog
-		JOIN 
-			users AS users ON users.user_id = dialog.receiver_id
+		JOIN
+			users on 
 		WHERE 
-			creator_id = $1 OR receiver_id = $1
+			(creator_id = $1 AND receiver_id = $2)
+			OR (creator_id = $2 AND receiver_id = $1)
 		`,
-		userId,
+		creatorId,
+		receiverId,
 	).Scan(&dialog.Id, &dialog.InterlocutorName)
 
 	if err != nil {
@@ -81,6 +86,14 @@ func CreateDialog(
 	).Scan(&dialog.Id, &dialog.InterlocutorName)
 
 	if err != nil {
+		var pg_err *pgconn.PgError
+		if errors.As(err, &pg_err) {
+			if pg_err.Code == "23503" {
+				return nil, repo_errors.ErrObjectNotFound
+			} else if pg_err.Code == "23505" {
+				return nil, repo_errors.ErrObjectAlreadyExists{}
+			}
+		}
 		log.Error("Error creating dialog: ", err)
 		return nil, repo_errors.ErrOperationError
 	}

@@ -31,9 +31,12 @@ func CreateMessage(
 	var messageId int
 	err = conn.QueryRow(
 		ctx,
-		`INSERT INTO dialog_message (text, link, message_type, dialog_id, author_id)
+		`INSERT INTO 
+			dialog_message 
+			(text, link, message_type, dialog_id, author_id)
 		VALUES($1, $2, $3, $4, $5)
-		RETURNING dialog_message_id
+		RETURNING 
+			dialog_message_id
 		`,
 		message.Text,
 		message.Link,
@@ -77,7 +80,7 @@ func UpdateMessage(
 		ctx,
 		`UPDATE dialog_message
 		SET text = $1
-		WHERE message_id = $2
+		WHERE dialog_message_id = $2
 		`,
 		message.Text,
 		message.MessageId,
@@ -192,6 +195,7 @@ func GetMessagesByDialogId(
 	rows, err := conn.Query(
 		ctx,
 		`SELECT
+			dialog_message_id,
 			author_id,
 			text,
 			message_type,
@@ -219,6 +223,7 @@ func GetMessagesByDialogId(
 		var message message_entities.MessageForDialog
 		var createdAt string
 		err := rows.Scan(
+			&message.MessageId,
 			&message.CreatorId,
 			&message.Text,
 			&message.MessageType,

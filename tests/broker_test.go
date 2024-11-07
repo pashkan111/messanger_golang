@@ -2,6 +2,8 @@ package tests
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"messanger/src/services/event_broker"
 	"testing"
 	"time"
@@ -14,6 +16,10 @@ import (
 type Message struct {
 	Text     string
 	Username string
+}
+
+func getChannelName(channel string) string {
+	return fmt.Sprintf("dialog:%s", channel)
 }
 
 func TestRedisBroker__MessageSentToChannel(t *testing.T) {
@@ -48,8 +54,14 @@ func TestRedisBroker__MessageSentToChannel(t *testing.T) {
 
 	for _, stream := range streams {
 		for _, message := range stream.Messages {
-			require.Equal(t, message.Values["Text"], "Hello everyone")
-			require.Equal(t, message.Values["Username"], "test_username")
+			var parsed_msg Message
+			msgStr, ok := message.Values["message"].(string)
+			msgBytes := []byte(msgStr)
+			json.Unmarshal(msgBytes, &parsed_msg)
+
+			require.True(t, ok)
+			require.Equal(t, parsed_msg.Text, "Hello everyone")
+			require.Equal(t, parsed_msg.Username, "test_username")
 		}
 	}
 }
@@ -103,10 +115,10 @@ func TestRedisBroker__MessageReadFromChannel(t *testing.T) {
 	}
 
 	require.Len(t, messages, 2)
-	require.Equal(t, messages[0]["Text"], "hello world")
-	require.Equal(t, messages[0]["Username"], "PAVEL")
-	require.Equal(t, messages[1]["Text"], "User sent message")
-	require.Equal(t, messages[1]["Username"], "Egor")
+	require.Equal(t, "User sent message", messages[1]["Text"])
+	require.Equal(t, "Egor", messages[1]["Username"])
+	require.Equal(t, "hello world", messages[0]["Text"])
+	require.Equal(t, "PAVEL", messages[0]["Username"])
 
 	// SEND MESSAGE TO CHANNEL AGAIN
 	go func() {
@@ -139,7 +151,14 @@ func TestPublishToStream(t *testing.T) {
 	channel_name3 := "test_channel3"
 
 	channels := []string{channel_name, channel_name2, channel_name3}
-	channelsToRead := []string{channel_name, channel_name2, channel_name3, "0-0", "0-0", "0-0"}
+	channelsToRead := []string{
+		getChannelName(channel_name),
+		getChannelName(channel_name2),
+		getChannelName(channel_name3),
+		"0-0",
+		"0-0",
+		"0-0",
+	}
 
 	message := Message{
 		Text:     "hello world",
@@ -149,7 +168,6 @@ func TestPublishToStream(t *testing.T) {
 	redis_broker := event_broker.RedisBroker{Client: redis_client}
 	err = event_broker.PublishToStream(ctx, log, channels, message, &redis_broker)
 	require.NoError(t, err)
-
 	streams, err := redis_client.XRead(ctx, &redis.XReadArgs{
 		Streams: channelsToRead,
 		Count:   10,
@@ -161,8 +179,14 @@ func TestPublishToStream(t *testing.T) {
 
 	for _, stream := range streams {
 		for _, message := range stream.Messages {
-			require.Equal(t, message.Values["Text"], "hello world")
-			require.Equal(t, message.Values["Username"], "PAVEL")
+			var parsed_msg Message
+			msgStr, ok := message.Values["message"].(string)
+			msgBytes := []byte(msgStr)
+			json.Unmarshal(msgBytes, &parsed_msg)
+
+			require.True(t, ok)
+			require.Equal(t, parsed_msg.Text, "hello world")
+			require.Equal(t, parsed_msg.Username, "PAVEL")
 		}
 	}
 }

@@ -24,9 +24,13 @@ func GetMessagesForDialog(
 	log *logrus.Logger,
 	event request_events.GetMessagesEventRequest,
 ) ([]message_entities.MessageForDialog, error) {
+	if event.Limit == 0 {
+		event.Limit = 10
+	}
 	messages, err := postgres_repos.GetMessagesByDialogId(
 		ctx, pool, log, event,
 	)
+
 	if err != nil {
 		return nil, err
 	}

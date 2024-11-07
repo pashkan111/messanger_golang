@@ -25,10 +25,10 @@ type MessageDialogTest struct {
 	Id          int
 	DialogId    int
 	AuthorId    int
-	Text        string
+	Text        *string
 	IsRead      bool
 	MessageType string
-	Link        string
+	Link        *string
 	CreatedAt   time.Time
 }
 

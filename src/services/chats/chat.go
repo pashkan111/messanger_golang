@@ -5,6 +5,7 @@ import (
 	"errors"
 	"messanger/src/entities/message_entities"
 	"messanger/src/errors/repo_errors"
+	"messanger/src/errors/service_errors"
 	"messanger/src/events/queue"
 	"messanger/src/events/request_events"
 	"messanger/src/services/event_broker"
@@ -18,28 +19,22 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func GetOrCreateDialog(
+func CreateDialog(
 	ctx context.Context,
 	pool *pgxpool.Pool,
 	log *logrus.Logger,
 	dialogData request_events.CreateDialogEventRequest,
 ) (*dialog_entities.Dialog, error) {
-	dialog, err := postgres_repos.GetDialog(
-		ctx, pool, log, dialogData.CreatorId,
+	dialog, err := postgres_repos.CreateDialog(
+		ctx, pool, log, dialogData.CreatorId, dialogData.ReceiverId,
 	)
 	if err != nil {
 		if errors.Is(err, repo_errors.ErrObjectNotFound) {
-			dialog, err := postgres_repos.CreateDialog(
-				ctx, pool, log, dialogData.CreatorId, dialogData.ReceiverId,
-			)
-			if err != nil {
-				log.Error("Error with creating dialog:", err)
-				return nil, err
-			}
-			return dialog, nil
+			return nil, service_errors.ErrUserNotFound
+		} else if errors.Is(err, repo_errors.ErrObjectAlreadyExists{}) {
+			log.Error("Error with creating dialog:", err)
+			return nil, service_errors.ErrDialogAlreadyExists
 		}
-		log.Error("Error with getting or creating dialog:", err)
-		return nil, err
 	}
 	return dialog, nil
 }

@@ -18,7 +18,7 @@ func PublishToStream(
 	var channelsToRepublish []string
 
 	for _, channel := range channels {
-		channelName := fmt.Sprintf("dialog:%s", channel)
+		channelName := getChannelName(channel)
 		err := event_broker.Publish(ctx, log, channelName, message)
 		if err != nil {
 			log.Errorf("could not add entry to stream: %v", err)
@@ -48,4 +48,8 @@ func PublishToStream(
 		}
 	}
 	return nil
+}
+
+func getChannelName(channel string) string {
+	return fmt.Sprintf("dialog:%s", channel)
 }

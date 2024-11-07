@@ -1,10 +1,13 @@
 package message_entities
 
-import "time"
+import (
+	"messanger/src/enums/message_type"
+	"time"
+)
 
 type MessageByDialogWithDialogId struct {
 	DialogId              int
-	MessageType           MessageType
+	MessageType           message_type.MessageType
 	Link                  *string
 	Text                  *string
 	AuthorIdOfLastMessage int

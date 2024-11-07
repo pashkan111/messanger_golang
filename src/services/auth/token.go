@@ -19,7 +19,7 @@ type Claims struct {
 }
 
 func GenerateAccessToken(userID int, tokenAssociation uuid.UUID) (entities.Token, error) {
-	expirationTime := time.Now().Add(time.Hour)
+	expirationTime := time.Now().Add(time.Hour * 10)
 	claims := &Claims{
 		UserID: userID,
 		StandardClaims: jwt.StandardClaims{
