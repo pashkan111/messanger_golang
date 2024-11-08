@@ -15,12 +15,13 @@ func GetChatsEventHandler(
 	pool *pgxpool.Pool,
 	log *logrus.Logger,
 	event request_events.GetChatsEventRequest,
+	userId int,
 ) (request_events.GetChatsEventResponse, error) {
 	dialogsForListing, err := chats.GetDialogsForListing(
 		ctx,
 		pool,
 		log,
-		event.UserId,
+		userId,
 	)
 	if err != nil {
 		return request_events.GetChatsEventResponse{

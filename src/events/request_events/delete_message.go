@@ -8,7 +8,6 @@ type DeleteMessageEventRequest struct {
 	RequestEventType event.ClientRequestEvent `json:"request_event_type" validate:"required"`
 	ChatId           int                      `json:"chat_id" validate:"required"`
 	MessageId        int                      `json:"message_id" validate:"required"`
-	UserId           int                      `json:"user_id" validate:"required"`
 	DeleteForBoth    bool                     `json:"delete_for_both"`
 }
 

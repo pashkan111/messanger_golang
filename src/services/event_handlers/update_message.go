@@ -16,10 +16,10 @@ func UpdateMessageEventHandler(
 	pool *pgxpool.Pool,
 	log *logrus.Logger,
 	event request_events.UpdateMessageEventRequest,
-	currentUserId int,
+	userId int,
 	broker event_broker.Broker,
 ) (request_events.UpdateMessageEventResponse, error) {
-	err := messages.UpdateMessage(ctx, pool, log, event, currentUserId, broker)
+	err := messages.UpdateMessage(ctx, pool, log, event, userId, broker)
 	if err != nil {
 		return request_events.UpdateMessageEventResponse{
 			EventType: event_enums.Response,

@@ -46,18 +46,16 @@ func TestGetOrCreateDialog__DialogExists(t *testing.T) {
 	})
 
 	dialogCreated, err := chats.CreateDialog(ctx, pool, log, request_events.CreateDialogEventRequest{
-		CreatorId:  user1.Id,
 		ReceiverId: user2.Id,
-	})
+	}, user1.Id)
 
 	require.Error(t, err)
 	assert.Nil(t, dialogCreated)
 
 	// Swap creator and receiver
 	dialogCreated, err = chats.CreateDialog(ctx, pool, log, request_events.CreateDialogEventRequest{
-		CreatorId:  user2.Id,
 		ReceiverId: user1.Id,
-	})
+	}, user2.Id)
 
 	require.Error(t, err)
 	assert.Nil(t, dialogCreated)
@@ -84,9 +82,8 @@ func TestGetOrCreateDialog__DialogDoesntExist(t *testing.T) {
 	})
 
 	dialogCreated, err := chats.CreateDialog(ctx, pool, log, request_events.CreateDialogEventRequest{
-		CreatorId:  user1.Id,
 		ReceiverId: user2.Id,
-	})
+	}, user1.Id)
 
 	require.NoError(t, err)
 	require.Equal(t, 1, dialogCreated.Id)

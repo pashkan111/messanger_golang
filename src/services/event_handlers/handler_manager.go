@@ -36,7 +36,7 @@ func HandleEvent(
 			log.Error("Error with unmarshalling event:", err)
 			return nil, err
 		}
-		return GetChatsEventHandler(ctx, pool, log, get_chats_event)
+		return GetChatsEventHandler(ctx, pool, log, get_chats_event, currentUserId)
 
 	case event_types.GetMessagesRequestEvent:
 		var get_messages_event request_events.GetMessagesEventRequest
@@ -54,7 +54,7 @@ func HandleEvent(
 			log.Error("Error with unmarshalling event:", err)
 			return nil, err
 		}
-		return CreateMessageEventHandler(ctx, pool, log, create_message_event, currentUserId, broker)
+		return CreateMessageEventHandler(ctx, pool, log, create_message_event, broker, currentUserId)
 
 	case event_types.UpdateMessageRequestEvent:
 		var update_message_event request_events.UpdateMessageEventRequest
@@ -81,7 +81,7 @@ func HandleEvent(
 			return nil, err
 		}
 
-		return CreateDialogEventHandler(ctx, pool, log, create_chat_event)
+		return CreateDialogEventHandler(ctx, pool, log, create_chat_event, currentUserId)
 
 	case event_types.DeleteDialogRequestEvent:
 		var delete_dialog_event request_events.DeleteDialogEventRequest

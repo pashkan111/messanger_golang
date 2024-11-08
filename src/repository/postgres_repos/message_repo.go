@@ -19,6 +19,7 @@ func CreateMessage(
 	pool *pgxpool.Pool,
 	log *logrus.Logger,
 	message request_events.CreateMessageEventRequest,
+	creatorId int,
 ) (int, error) {
 	conn, err := pool.Acquire(ctx)
 
@@ -42,7 +43,7 @@ func CreateMessage(
 		message.Link,
 		message.MessageType,
 		message.ChatId,
-		message.CreatorId,
+		creatorId,
 	).Scan(&messageId)
 
 	if err != nil {

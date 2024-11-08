@@ -42,11 +42,11 @@ func CreateMessage(
 	pool *pgxpool.Pool,
 	log *logrus.Logger,
 	event request_events.CreateMessageEventRequest,
-	currentUserId int,
+	creatorId int,
 	broker event_broker.Broker,
 ) (int, error) {
 	messageId, err := postgres_repos.CreateMessage(
-		ctx, pool, log, event,
+		ctx, pool, log, event, creatorId,
 	)
 	if err != nil {
 		if errors.Is(err, repo_errors.ErrObjectNotFound) {
@@ -61,7 +61,7 @@ func CreateMessage(
 		log,
 		[]string{utils.ConvertIntToString(event.ChatId)},
 		queue.QueueEvent{
-			UserID:    currentUserId,
+			UserID:    creatorId,
 			EventData: event,
 		},
 		broker,

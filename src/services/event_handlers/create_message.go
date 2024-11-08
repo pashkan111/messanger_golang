@@ -16,10 +16,10 @@ func CreateMessageEventHandler(
 	pool *pgxpool.Pool,
 	log *logrus.Logger,
 	event request_events.CreateMessageEventRequest,
-	currentUserId int,
 	broker event_broker.Broker,
+	userId int,
 ) (request_events.CreateMessageEventResponse, error) {
-	createdMessageId, err := messages.CreateMessage(ctx, pool, log, event, currentUserId, broker)
+	createdMessageId, err := messages.CreateMessage(ctx, pool, log, event, userId, broker)
 	if err != nil {
 		return request_events.CreateMessageEventResponse{
 			MessageId: nil,

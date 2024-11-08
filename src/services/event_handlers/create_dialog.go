@@ -15,8 +15,9 @@ func CreateDialogEventHandler(
 	pool *pgxpool.Pool,
 	log *logrus.Logger,
 	event request_events.CreateDialogEventRequest,
+	userId int,
 ) (request_events.CreateDialogEventResponse, error) {
-	dialog, err := chats.CreateDialog(ctx, pool, log, event)
+	dialog, err := chats.CreateDialog(ctx, pool, log, event, userId)
 	if err != nil {
 		return request_events.CreateDialogEventResponse{
 			EventType: event_enums.Response,

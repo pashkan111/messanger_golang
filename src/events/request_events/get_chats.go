@@ -9,7 +9,6 @@ import (
 
 type GetChatsEventRequest struct {
 	RequestEventType event.ClientRequestEvent `json:"request_event_type" validate:"required"`
-	UserId           int                      `json:"user_id" validate:"required"`
 }
 
 func (e GetChatsEventRequest) GetEventType() event.ClientRequestEvent {

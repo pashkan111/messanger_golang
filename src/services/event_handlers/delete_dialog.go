@@ -16,10 +16,10 @@ func DeleteDialogEventHandler(
 	pool *pgxpool.Pool,
 	log *logrus.Logger,
 	event request_events.DeleteDialogEventRequest,
-	currentUserId int,
+	userId int,
 	broker event_broker.Broker,
 ) (request_events.DeleteDialogEventResponse, error) {
-	err := chats.DeleteDialog(ctx, pool, log, event, currentUserId, broker)
+	err := chats.DeleteDialog(ctx, pool, log, event, userId, broker)
 	if err != nil {
 		return request_events.DeleteDialogEventResponse{
 			EventType: event_enums.Response,

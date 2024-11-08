@@ -24,9 +24,10 @@ func CreateDialog(
 	pool *pgxpool.Pool,
 	log *logrus.Logger,
 	dialogData request_events.CreateDialogEventRequest,
+	creatorId int,
 ) (*dialog_entities.Dialog, error) {
 	dialog, err := postgres_repos.CreateDialog(
-		ctx, pool, log, dialogData.CreatorId, dialogData.ReceiverId,
+		ctx, pool, log, creatorId, dialogData.ReceiverId,
 	)
 	if err != nil {
 		if errors.Is(err, repo_errors.ErrObjectNotFound) {
@@ -115,7 +116,7 @@ func DeleteDialog(
 	pool *pgxpool.Pool,
 	log *logrus.Logger,
 	event request_events.DeleteDialogEventRequest,
-	currentUserId int,
+	userId int,
 	broker event_broker.Broker,
 ) error {
 	var err error
@@ -125,7 +126,7 @@ func DeleteDialog(
 			log,
 			[]string{utils.ConvertIntToString(event.DialogId)},
 			queue.QueueEvent{
-				UserID:    currentUserId,
+				UserID:    userId,
 				EventData: event,
 			},
 			broker,
@@ -134,7 +135,7 @@ func DeleteDialog(
 	} else {
 		err = postgres_repos.DeleteDialogForOneParticipant(ctx, pool, log, &dialog_entities.DeleteDialogForUser{
 			DialogId: event.DialogId,
-			UserId:   event.UserId,
+			UserId:   userId,
 		})
 	}
 	return err
