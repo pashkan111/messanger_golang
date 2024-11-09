@@ -77,19 +77,26 @@ func UpdateMessage(
 	}
 	defer conn.Release()
 
-	_, err = conn.Exec(
+	result, err := conn.Exec(
 		ctx,
 		`UPDATE dialog_message
 		SET text = $1
-		WHERE dialog_message_id = $2
+		WHERE 
+			dialog_message_id = $2
+			AND author_id = $3
 		`,
 		message.Text,
 		message.MessageId,
+		message.UserId,
 	)
 
 	if err != nil {
 		log.Error("Error updating message: ", err.Error())
 		return repo_errors.ErrOperationError
+	}
+
+	if result.RowsAffected() == 0 {
+		return repo_errors.ErrMessageNotUpdated
 	}
 	return nil
 }

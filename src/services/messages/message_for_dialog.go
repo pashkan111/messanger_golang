@@ -80,8 +80,12 @@ func UpdateMessage(
 	err := postgres_repos.UpdateMessage(ctx, pool, log, message_entities.UpdateMessage{
 		MessageId: event.MessageId,
 		Text:      event.Text,
+		UserId:    currentUserId,
 	})
 	if err != nil {
+		if errors.Is(err, repo_errors.ErrMessageNotUpdated) {
+			return fmt.Errorf("message not updated. Id: %d", event.MessageId)
+		}
 		return err
 	}
 	event_broker.PublishToStream(

@@ -19,6 +19,7 @@ type MessageForDialog struct {
 type UpdateMessage struct {
 	MessageId int
 	Text      string
+	UserId    int
 }
 
 type MessageByDialog struct {

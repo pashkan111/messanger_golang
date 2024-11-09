@@ -4,6 +4,7 @@ import "errors"
 
 var ErrOperationError = errors.New("error while performing operation")
 var ErrObjectNotFound = errors.New("object not found")
+var ErrMessageNotUpdated = errors.New("message not updated")
 
 type ErrObjectAlreadyExists struct {
 	Detail string
