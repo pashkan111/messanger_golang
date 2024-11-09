@@ -44,9 +44,9 @@ func GetDialogsForListing(
 	ctx context.Context,
 	pool *pgxpool.Pool,
 	log *logrus.Logger,
-	user_id int,
+	userId int,
 ) ([]dialog_entities.DialogForListing, error) {
-	dialogs, err := postgres_repos.GetDialogsByUserId(ctx, pool, log, user_id)
+	dialogs, err := postgres_repos.GetDialogsByUserId(ctx, pool, log, userId)
 	if err != nil {
 		log.Error("Error with getting chats for listing: ", err)
 		return nil, err
@@ -55,19 +55,20 @@ func GetDialogsForListing(
 		return []dialog_entities.DialogForListing{}, nil
 	}
 
-	dialog_ids := make([]int, 0, len(dialogs))
+	dialogIds := make([]int, 0, len(dialogs))
 	for _, dialog := range dialogs {
-		dialog_ids = append(dialog_ids, dialog.Id)
+		dialogIds = append(dialogIds, dialog.Id)
 	}
 
-	messages, err := postgres_repos.GetLastMessageByDialogId(ctx, pool, log, dialog_ids, user_id)
+	// TODO run with goroutines
+	messages, err := postgres_repos.GetLastMessageByDialogId(ctx, pool, log, dialogIds, userId)
 	if err != nil {
 		log.Error("Error with getting last messages by dialog id: ", err)
 		return nil, err
 	}
 
 	interlocutorsOfDialogs, err := postgres_repos.GetInterlocutorsOfDialogs(
-		ctx, pool, log, dialog_ids, user_id,
+		ctx, pool, log, dialogIds, userId,
 	)
 
 	chats := make([]dialog_entities.DialogForListing, 0, len(dialogs))

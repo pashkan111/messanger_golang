@@ -250,3 +250,33 @@ func GetMessagesByDialogId(
 
 	return messages, nil
 }
+
+func ReadMessages(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	log *logrus.Logger,
+	messageIds []int,
+) error {
+	conn, err := pool.Acquire(ctx)
+
+	if err != nil {
+		log.Error("Error with acquiring connection:", err)
+		return repo_errors.ErrOperationError
+	}
+	defer conn.Release()
+
+	_, err = conn.Exec(
+		ctx,
+		`UPDATE dialog_message
+		SET is_read = TRUE
+		WHERE dialog_message_id = ANY($1)
+		`,
+		messageIds,
+	)
+
+	if err != nil {
+		log.Error("Error updating message: ", err.Error())
+		return repo_errors.ErrOperationError
+	}
+	return nil
+}

@@ -166,7 +166,7 @@ func TestGetDialogsForListing__DialogsExist(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	_, err = GetTestMessage(pool, MessageDialogTest{
+	GetTestMessage(pool, MessageDialogTest{
 		DialogId:    dialog1.Id,
 		AuthorId:    user2.Id,
 		Text:        strPtr("Hello, brat"),
@@ -176,13 +176,21 @@ func TestGetDialogsForListing__DialogsExist(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	_, err = GetTestMessage(pool, MessageDialogTest{
+	GetTestMessage(pool, MessageDialogTest{
 		DialogId:    dialog2.Id,
 		AuthorId:    user3.Id,
 		Text:        strPtr("how are you?"),
 		IsRead:      false,
 		MessageType: "TEXT",
 		CreatedAt:   time.Date(2021, 12, 12, 1, 23, 39, 0, time.UTC),
+	})
+	_, err = GetTestMessage(pool, MessageDialogTest{
+		DialogId:    dialog2.Id,
+		AuthorId:    user3.Id,
+		Text:        strPtr("ARE YOU HERE?"),
+		IsRead:      false,
+		MessageType: "TEXT",
+		CreatedAt:   time.Date(2021, 12, 12, 1, 23, 40, 0, time.UTC),
 	})
 	require.NoError(t, err)
 
@@ -209,12 +217,12 @@ func TestGetDialogsForListing__DialogsExist(t *testing.T) {
 				Id:               dialog2.Id,
 				InterlocutorName: user3.Username,
 				LastMessage: message_entities.MessageByDialog{
-					Text:                  strPtr("how are you?"),
+					Text:                  strPtr("ARE YOU HERE?"),
 					AuthorIdOfLastMessage: user3.Id,
-					UnreadedCount:         1,
+					UnreadedCount:         2,
 					MessageType:           "TEXT",
 					Link:                  nil,
-					CreatedAt:             time.Date(2021, 12, 12, 1, 23, 39, 0, time.UTC),
+					CreatedAt:             time.Date(2021, 12, 12, 1, 23, 40, 0, time.UTC),
 				},
 			},
 		},

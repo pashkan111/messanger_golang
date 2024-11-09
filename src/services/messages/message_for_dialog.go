@@ -96,3 +96,28 @@ func UpdateMessage(
 	)
 	return nil
 }
+
+func ReadMessages(
+	ctx context.Context,
+	pool *pgxpool.Pool,
+	log *logrus.Logger,
+	event request_events.ReadMessagesEventRequest,
+	currentUserId int,
+	broker event_broker.Broker,
+) error {
+	err := postgres_repos.ReadMessages(ctx, pool, log, event.MessagesIds)
+	if err != nil {
+		return err
+	}
+	event_broker.PublishToStream(
+		ctx,
+		log,
+		[]string{utils.ConvertIntToString(event.ChatId)},
+		queue.QueueEvent{
+			UserID:    currentUserId,
+			EventData: event,
+		},
+		broker,
+	)
+	return nil
+}

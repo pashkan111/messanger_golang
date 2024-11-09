@@ -11,6 +11,7 @@ const (
 	CreateDialogRequestEvent  = ClientRequestEvent("CREATE_DIALOG")
 	DeleteDialogRequestEvent  = ClientRequestEvent("DELETE_DIALOG")
 	GetContactsRequestEvent   = ClientRequestEvent("GET_CONTACTS")
+	MessagesReadRequestEvent  = ClientRequestEvent("MESSAGES_READ")
 )
 
 type ClientResponseEventStatus string

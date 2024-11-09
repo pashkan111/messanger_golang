@@ -23,7 +23,6 @@ type UpdateMessage struct {
 
 type MessageByDialog struct {
 	// Message for chat listing
-	MessageId             int                      `json:"message_id"`
 	Text                  *string                  `json:"text"`
 	AuthorIdOfLastMessage int                      `json:"author_id_of_last_message"`
 	UnreadedCount         int                      `json:"unreaded_count"`

@@ -30,67 +30,76 @@ func HandleEvent(
 
 	switch base_event.RequestEventType {
 	case event_types.GetChatsRequestEvent:
-		var get_chats_event request_events.GetChatsEventRequest
-		err := json.Unmarshal(eventData, &get_chats_event)
+		var getChatsEvent request_events.GetChatsEventRequest
+		err := json.Unmarshal(eventData, &getChatsEvent)
 		if err != nil {
 			log.Error("Error with unmarshalling event:", err)
 			return nil, err
 		}
-		return GetChatsEventHandler(ctx, pool, log, get_chats_event, currentUserId)
+		return GetChatsEventHandler(ctx, pool, log, getChatsEvent, currentUserId)
 
 	case event_types.GetMessagesRequestEvent:
-		var get_messages_event request_events.GetMessagesEventRequest
-		err := json.Unmarshal(eventData, &get_messages_event)
+		var getMessagesEvent request_events.GetMessagesEventRequest
+		err := json.Unmarshal(eventData, &getMessagesEvent)
 		if err != nil {
 			log.Error("Error with unmarshalling event:", err)
 			return nil, err
 		}
-		return GetMessagesEventHandler(ctx, pool, log, get_messages_event)
+		return GetMessagesEventHandler(ctx, pool, log, getMessagesEvent)
 
 	case event_types.CreateMessageRequestEvent:
-		var create_message_event request_events.CreateMessageEventRequest
-		err := json.Unmarshal(eventData, &create_message_event)
+		var createMessageEvent request_events.CreateMessageEventRequest
+		err := json.Unmarshal(eventData, &createMessageEvent)
 		if err != nil {
 			log.Error("Error with unmarshalling event:", err)
 			return nil, err
 		}
-		return CreateMessageEventHandler(ctx, pool, log, create_message_event, broker, currentUserId)
+		return CreateMessageEventHandler(ctx, pool, log, createMessageEvent, broker, currentUserId)
 
 	case event_types.UpdateMessageRequestEvent:
-		var update_message_event request_events.UpdateMessageEventRequest
-		err := json.Unmarshal(eventData, &update_message_event)
+		var updateMessageEvent request_events.UpdateMessageEventRequest
+		err := json.Unmarshal(eventData, &updateMessageEvent)
 		if err != nil {
 			log.Error("Error with unmarshalling event:", err)
 			return nil, err
 		}
-		return UpdateMessageEventHandler(ctx, pool, log, update_message_event, currentUserId, broker)
+		return UpdateMessageEventHandler(ctx, pool, log, updateMessageEvent, currentUserId, broker)
 
 	case event_types.DeleteMessageRequestEvent:
-		var delete_message_event request_events.DeleteMessageEventRequest
-		err := json.Unmarshal(eventData, &delete_message_event)
+		var deleteMessageEvent request_events.DeleteMessageEventRequest
+		err := json.Unmarshal(eventData, &deleteMessageEvent)
 		if err != nil {
 			log.Error("Error with unmarshalling event:", err)
 			return nil, err
 		}
 
 	case event_types.CreateDialogRequestEvent:
-		var create_chat_event request_events.CreateDialogEventRequest
-		err := json.Unmarshal(eventData, &create_chat_event)
+		var createChatEvent request_events.CreateDialogEventRequest
+		err := json.Unmarshal(eventData, &createChatEvent)
 		if err != nil {
 			log.Error("Error with unmarshalling event:", err)
 			return nil, err
 		}
 
-		return CreateDialogEventHandler(ctx, pool, log, create_chat_event, currentUserId)
+		return CreateDialogEventHandler(ctx, pool, log, createChatEvent, currentUserId)
 
 	case event_types.DeleteDialogRequestEvent:
-		var delete_dialog_event request_events.DeleteDialogEventRequest
-		err := json.Unmarshal(eventData, &delete_dialog_event)
+		var deleteDialogEvent request_events.DeleteDialogEventRequest
+		err := json.Unmarshal(eventData, &deleteDialogEvent)
 		if err != nil {
 			log.Error("Error with unmarshalling event:", err)
 			return nil, err
 		}
-		return DeleteDialogEventHandler(ctx, pool, log, delete_dialog_event, currentUserId, broker)
+		return DeleteDialogEventHandler(ctx, pool, log, deleteDialogEvent, currentUserId, broker)
+
+	case event_types.MessagesReadRequestEvent:
+		var readMessagesEvent request_events.ReadMessagesEventRequest
+		err := json.Unmarshal(eventData, &readMessagesEvent)
+		if err != nil {
+			log.Error("Error with unmarshalling event:", err)
+			return nil, err
+		}
+		return ReadMessagesEventHandler(ctx, pool, log, readMessagesEvent, currentUserId, broker)
 	}
 
 	log.Errorf("Unknown event type %s", base_event.RequestEventType)
