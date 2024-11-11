@@ -115,10 +115,10 @@ func TestRedisBroker__MessageReadFromChannel(t *testing.T) {
 	}
 
 	require.Len(t, messages, 2)
+	require.Equal(t, "PAVEL", messages[0]["Username"])
+	require.Equal(t, "hello world", messages[0]["Text"])
 	require.Equal(t, "User sent message", messages[1]["Text"])
 	require.Equal(t, "Egor", messages[1]["Username"])
-	require.Equal(t, "hello world", messages[0]["Text"])
-	require.Equal(t, "PAVEL", messages[0]["Username"])
 
 	// SEND MESSAGE TO CHANNEL AGAIN
 	go func() {

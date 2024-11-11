@@ -11,6 +11,7 @@ import (
 	"messanger/src/services/event_broker"
 	"messanger/src/utils"
 	"sort"
+	"sync"
 
 	"messanger/src/entities/dialog_entities"
 	"messanger/src/repository/postgres_repos"
@@ -60,16 +61,39 @@ func GetDialogsForListing(
 		dialogIds = append(dialogIds, dialog.Id)
 	}
 
-	// TODO run with goroutines
-	messages, err := postgres_repos.GetLastMessageByDialogId(ctx, pool, log, dialogIds, userId)
-	if err != nil {
-		log.Error("Error with getting last messages by dialog id: ", err)
-		return nil, err
-	}
+	var messages []message_entities.MessageByDialogWithDialogId
+	var interlocutorsOfDialogs []dialog_entities.Dialog
+	errors := make(chan error, 2)
 
-	interlocutorsOfDialogs, err := postgres_repos.GetInterlocutorsOfDialogs(
-		ctx, pool, log, dialogIds, userId,
-	)
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		messages, err = postgres_repos.GetLastMessageByDialogId(ctx, pool, log, dialogIds, userId)
+		if err != nil {
+			log.Error("Error with getting last messages by dialog id: ", err)
+			errors <- err
+		}
+	}(&wg)
+
+	go func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		interlocutorsOfDialogs, err = postgres_repos.GetInterlocutorsOfDialogs(
+			ctx, pool, log, dialogIds, userId,
+		)
+		if err != nil {
+			log.Error("Error with getting interlocutors of dialogs: ", err)
+			errors <- err
+		}
+	}(&wg)
+
+	wg.Wait()
+	close(errors)
+
+	if len(errors) > 0 {
+		return nil, <-errors
+	}
 
 	chats := make([]dialog_entities.DialogForListing, 0, len(dialogs))
 
