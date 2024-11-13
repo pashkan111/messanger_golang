@@ -3,6 +3,7 @@ package event_broker
 import (
 	"context"
 	"encoding/json"
+	"messanger/src/errors/broker_errors"
 
 	"github.com/sirupsen/logrus"
 
@@ -20,46 +21,38 @@ func (rb *RedisBroker) Publish(
 	message interface{},
 ) error {
 	mapped_message, _ := json.Marshal(message)
-	_, err := rb.Client.XAdd(ctx, &redis.XAddArgs{
-		Stream: channel,
-		Values: map[string]interface{}{"message": mapped_message},
-	}).Result()
+	err := rb.Client.Publish(ctx, channel, mapped_message).Err()
 	return err
 }
 
 func (rb *RedisBroker) Read(
 	ctx context.Context,
 	log *logrus.Logger,
-	channelKeys map[string]string,
-) ([]BrokerMessage, error) {
-	messages := []BrokerMessage{}
-	streamsWithIds := buildStreamIds(channelKeys, len(channelKeys)*2)
+	channelKeys []string,
+	messagesChan chan BrokerMessage,
+) error {
+	pubsub := rb.Client.Subscribe(ctx, channelKeys...)
+	defer pubsub.Close()
 
-	streams, err := rb.Client.XRead(ctx, &redis.XReadArgs{
-		Streams: streamsWithIds,
-		Count:   10,
-		Block:   0,
-	}).Result()
+	_, err := pubsub.Receive(ctx)
 	if err != nil {
-		return nil, err
+		log.Errorf("Could not subscribe: %v", err)
+		return broker_errors.ErrBrokerSubscribe
 	}
 
-	for _, stream := range streams {
-		for _, message := range stream.Messages {
-			messages = append(messages, message.Values)
-			channelKeys[stream.Stream] = message.ID
+	pubsubChannel := pubsub.Channel()
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case msg := <-pubsubChannel:
+			var message BrokerMessage
+			err := json.Unmarshal([]byte(msg.Payload), &message)
+			if err != nil {
+				log.Errorf("Could not unmarshal message: %v", err)
+				//TODO add to dead queue
+			}
+			messagesChan <- message
 		}
 	}
-	return messages, nil
-}
-
-func buildStreamIds(streamIds map[string]string, length int) []string {
-	streamsWithIds := make([]string, 0, length)
-	for key := range streamIds {
-		streamsWithIds = append(streamsWithIds, key)
-	}
-	for _, id := range streamIds {
-		streamsWithIds = append(streamsWithIds, id)
-	}
-	return streamsWithIds
 }

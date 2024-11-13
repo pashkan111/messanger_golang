@@ -26,9 +26,10 @@ func (*mockBroker) Publish(
 func (*mockBroker) Read(
 	ctx context.Context,
 	log *logrus.Logger,
-	channelKeys map[string]string,
-) ([]event_broker.BrokerMessage, error) {
-	return nil, nil
+	channelKeys []string,
+	messagesChan chan event_broker.BrokerMessage,
+) error {
+	return nil
 }
 
 func TestUpdateMessage(t *testing.T) {

@@ -73,7 +73,7 @@ func (h *WSHandler) HandleConnections(w http.ResponseWriter, r *http.Request) {
 	}
 
 	wsChannel := make(chan interface{})
-	messagesChannel := make(chan []event_broker.BrokerMessage)
+	messagesChannel := make(chan event_broker.BrokerMessage)
 	stop := make(chan interface{})
 	keyChanged := make(chan []string)
 	channels := getChannelsKeysForUser(dialogsForListing)
@@ -128,10 +128,8 @@ func (h *WSHandler) HandleConnections(w http.ResponseWriter, r *http.Request) {
 			}
 			jsonMessage, _ := json.Marshal(processedMessage)
 			ws.WriteMessage(websocket.BinaryMessage, jsonMessage)
-		case messagesFromConsumer := <-messagesChannel:
-			for _, message := range messagesFromConsumer {
-				fmt.Println("Messages from consumer", message["message"])
-			}
+		case messageFromConsumer := <-messagesChannel:
+			fmt.Println("Messages from consumer", messageFromConsumer["message"])
 		}
 	}
 }

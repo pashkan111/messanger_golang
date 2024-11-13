@@ -18,6 +18,7 @@ type Broker interface {
 	Read(
 		ctx context.Context,
 		log *logrus.Logger,
-		channelKeys map[string]string,
-	) ([]BrokerMessage, error)
+		channelKeys []string,
+		messagesChan chan BrokerMessage,
+	) error
 }

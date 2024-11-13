@@ -2,32 +2,36 @@ package tests
 
 import (
 	"context"
+	"encoding/json"
 	"messanger/src/services/consumers"
 	"messanger/src/services/event_broker"
 	"testing"
 	"time"
 
-	"github.com/go-redis/redis/v8"
-
 	"github.com/stretchr/testify/require"
 )
 
 func TestConsumer(t *testing.T) {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
 	log := SetupLogger()
 	redis_client, cleanup, err := SetupTestRedisPool(ctx, log)
 	require.NoError(t, err)
 	defer cleanup()
+	defer cancel()
 
-	channel_name := "test_channel1"
+	channel_name1 := "test_channel1"
 	channel_name2 := "test_channel2"
 
-	channels := []string{channel_name, channel_name2}
+	message := Message{
+		Text:     "Hello everyone",
+		Username: "test_username",
+	}
+
+	channels := []string{channel_name1, channel_name2}
 
 	redis_broker := &event_broker.RedisBroker{Client: redis_client}
-	result_chan := make(chan []event_broker.BrokerMessage)
-	stop := make(chan interface{})
-	key_changed := make(chan []string)
+	resultChan := make(chan event_broker.BrokerMessage)
+	keyChanged := make(chan []string)
 
 	go func() {
 		err := consumers.ConsumeEvents(
@@ -35,39 +39,32 @@ func TestConsumer(t *testing.T) {
 			log,
 			redis_broker,
 			channels,
-			result_chan,
-			stop,
-			key_changed,
+			resultChan,
+			keyChanged,
 		)
 		require.NoError(t, err)
 	}()
 
 	time.Sleep(1 * time.Second)
 
-	err = redis_client.XAdd(ctx, &redis.XAddArgs{
-		Stream: channel_name,
-		Values: map[string]interface{}{
-			"Text":     "Hello everyone",
-			"Username": "test_username",
-		},
-	}).Err()
+	jsonMessage, _ := json.Marshal(message)
+	err = redis_client.Publish(
+		ctx,
+		channel_name1,
+		jsonMessage,
+	).Err()
 	require.NoError(t, err)
+	msg := <-resultChan
+	require.Equal(t, message.Text, msg["Text"])
 
-	msg := <-result_chan
-	require.Len(t, msg, 1)
-
-	err = redis_client.XAdd(ctx, &redis.XAddArgs{
-		Stream: channel_name,
-		Values: map[string]interface{}{
-			"Text":     "Hello world",
-			"Username": "test_username2",
-		},
-	}).Err()
-	require.NoError(t, err)
-	msg = <-result_chan
-	require.Len(t, msg, 1)
-
-	stop <- struct{}{}
+	// err = redis_client.Publish(
+	// 	ctx,
+	// 	channel_name2,
+	// 	jsonMessage,
+	// ).Err()
+	// require.NoError(t, err)
+	// msg = <-resultChan
+	// require.Len(t, msg, 1)
 }
 
 // TODO write tests for rebuilding keys

@@ -2,7 +2,6 @@ package consumers
 
 import (
 	"context"
-	"messanger/src/errors/broker_errors"
 	"messanger/src/services/event_broker"
 
 	"github.com/sirupsen/logrus"
@@ -12,59 +11,33 @@ func ConsumeEvents(
 	ctx context.Context,
 	log *logrus.Logger,
 	broker event_broker.Broker,
-	keys []string,
-	result_chan chan []event_broker.BrokerMessage,
-	stop chan interface{},
-	key_changed chan []string,
+	channels []string,
+	resultChan chan event_broker.BrokerMessage,
+	keyChanged chan []string,
 ) error {
-	streamIds := make(map[string]string, len(keys))
-	for _, key := range keys {
-		streamIds[key] = "$"
+	if len(channels) == 0 {
+		return nil
 	}
+	messagesChan := make(chan event_broker.BrokerMessage)
+	errConsumerChan := make(chan error)
+
+	go func(errConsumerChan chan error) {
+		err := broker.Read(ctx, log, channels, messagesChan)
+		if err != nil {
+			errConsumerChan <- err
+		}
+	}(errConsumerChan)
+
 	log.Info("Consumer started")
+
 	for {
 		select {
-		case <-stop:
-			return nil
-		case newChannels := <-key_changed:
-			streamIds = buildStreamIds(newChannels, streamIds)
-		default:
-			if len(streamIds) == 0 {
-				continue
-			}
-			messagesChan := make(chan []event_broker.BrokerMessage)
-			errChan := make(chan error)
-
-			go func() {
-				messages, err := broker.Read(ctx, log, streamIds)
-				if err != nil {
-					errChan <- err
-					return
-				}
-				messagesChan <- messages
-			}()
-
-			select {
-			case <-stop:
-				return nil
-			case err := <-errChan:
-				log.Errorf("could not add entry to stream: %v", err)
-				return broker_errors.ErrBrokerReadMessage
-			case messages := <-messagesChan:
-				result_chan <- messages
-			}
+		case err := <-errConsumerChan:
+			return err
+		case message := <-messagesChan:
+			resultChan <- message
+		case newChannels := <-keyChanged:
+			channels = newChannels
 		}
 	}
-}
-
-func buildStreamIds(channels []string, channelsWithKeys map[string]string) map[string]string {
-	streamIds := make(map[string]string, len(channels))
-	for _, key := range channels {
-		if _, ok := channelsWithKeys[key]; !ok {
-			streamIds[key] = "$"
-		} else {
-			streamIds[key] = channelsWithKeys[key]
-		}
-	}
-	return streamIds
 }
