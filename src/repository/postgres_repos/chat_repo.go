@@ -76,12 +76,12 @@ func CreateDialog(
 	err = conn.QueryRow(
 		ctx,
 		`
-			INSERT INTO dialog (creator_id, receiver_id)
-			VALUES ($1, $2)
-			RETURNING 
-				dialog_id,
-				(SELECT username FROM users WHERE user_id = $2) username
-			`,
+		INSERT INTO dialog (creator_id, receiver_id)
+		VALUES ($1, $2)
+		RETURNING 
+			dialog_id,
+			(SELECT username FROM users WHERE user_id = $2) username
+		`,
 		creatorId, receiverId,
 	).Scan(&dialog.Id, &dialog.InterlocutorName)
 

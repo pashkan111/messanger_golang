@@ -8,8 +8,8 @@ import (
 type CreateMessageEventRequest struct {
 	RequestEventType event.ClientRequestEvent `json:"request_event_type" validate:"required"`
 	MessageType      message_type.MessageType `json:"message_type" validate:"required"`
+	ChatId           int                      `json:"chat_id"`
 	ReceiverId       int                      `json:"receiver_id" validate:"required"`
-	ChatId           int                      `json:"chat_id" validate:"required"`
 	Text             string                   `json:"text"`
 	Link             string                   `json:"link"`
 }

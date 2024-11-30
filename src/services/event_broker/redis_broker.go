@@ -30,6 +30,7 @@ func (rb *RedisBroker) Read(
 	log *logrus.Logger,
 	channelKeys []string,
 	messagesChan chan BrokerMessage,
+	stop chan interface{},
 ) error {
 	pubsub := rb.Client.Subscribe(ctx, channelKeys...)
 	defer pubsub.Close()
@@ -44,6 +45,8 @@ func (rb *RedisBroker) Read(
 	for {
 		select {
 		case <-ctx.Done():
+			return nil
+		case <-stop:
 			return nil
 		case msg := <-pubsubChannel:
 			var message BrokerMessage

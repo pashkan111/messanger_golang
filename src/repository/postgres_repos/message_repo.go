@@ -32,12 +32,11 @@ func CreateMessage(
 	var messageId int
 	err = conn.QueryRow(
 		ctx,
-		`INSERT INTO 
-			dialog_message 
+		`
+		INSERT INTO dialog_message
 			(text, link, message_type, dialog_id, author_id)
 		VALUES($1, $2, $3, $4, $5)
-		RETURNING 
-			dialog_message_id
+		RETURNING dialog_message_id
 		`,
 		message.Text,
 		message.Link,

@@ -45,13 +45,25 @@ func CreateMessage(
 	creatorId int,
 	broker event_broker.Broker,
 ) (int, error) {
+	chatId := event.ChatId
+	if chatId == 0 {
+		dialog, err := postgres_repos.CreateDialog(
+			ctx, pool, log, creatorId, event.ReceiverId,
+		)
+		if err != nil {
+			return 0, err
+		}
+		chatId = dialog.Id
+	}
+
+	event.ChatId = chatId
 	messageId, err := postgres_repos.CreateMessage(
 		ctx, pool, log, event, creatorId,
 	)
 	if err != nil {
 		if errors.Is(err, repo_errors.ErrObjectNotFound) {
 			return 0, service_errors.ErrObjectNotFound{
-				Detail: fmt.Sprintf("Chat not found. Id: %d", event.ChatId),
+				Detail: "User not found",
 			}
 		}
 		return 0, err

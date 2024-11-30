@@ -92,6 +92,7 @@ func TestRedisBroker__MessageReadFromChannel(t *testing.T) {
 	}
 
 	messageChan := make(chan event_broker.BrokerMessage, 2)
+	stop := make(chan interface{})
 
 	redis_broker := event_broker.RedisBroker{Client: redis_client}
 	go func(ctx context.Context) {
@@ -100,6 +101,7 @@ func TestRedisBroker__MessageReadFromChannel(t *testing.T) {
 			log,
 			[]string{channel_name1, channel_name2},
 			messageChan,
+			stop,
 		)
 	}(ctx)
 

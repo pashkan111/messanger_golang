@@ -24,11 +24,11 @@ func CreateDialog(
 	ctx context.Context,
 	pool *pgxpool.Pool,
 	log *logrus.Logger,
-	dialogData request_events.CreateDialogEventRequest,
 	creatorId int,
+	receiverId int,
 ) (*dialog_entities.Dialog, error) {
 	dialog, err := postgres_repos.CreateDialog(
-		ctx, pool, log, creatorId, dialogData.ReceiverId,
+		ctx, pool, log, creatorId, receiverId,
 	)
 	if err != nil {
 		if errors.Is(err, repo_errors.ErrObjectNotFound) {

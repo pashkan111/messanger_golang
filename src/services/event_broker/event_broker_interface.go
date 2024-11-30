@@ -20,5 +20,6 @@ type Broker interface {
 		log *logrus.Logger,
 		channelKeys []string,
 		messagesChan chan BrokerMessage,
+		stop chan interface{},
 	) error
 }

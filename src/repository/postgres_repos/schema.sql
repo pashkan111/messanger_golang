@@ -25,9 +25,9 @@ CREATE TABLE IF NOT EXISTS dialog_message (
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     is_read BOOLEAN DEFAULT FALSE,
     message_type message_type DEFAULT 'TEXT',
-    link VARCHAR(255) ,
-    dialog_id INTEGER REFERENCES dialog (dialog_id) ON DELETE CASCADE,
-    author_id INTEGER REFERENCES users (user_id) ON DELETE CASCADE
+    link VARCHAR(255),
+    dialog_id INTEGER NOT NULL REFERENCES dialog (dialog_id) ON DELETE CASCADE,
+    author_id INTEGER NOT NULL REFERENCES users (user_id) ON DELETE CASCADE
 );
 
 -- CREATE TABLE IF NOT EXISTS chat (

@@ -2,35 +2,15 @@ package tests
 
 import (
 	"context"
-	"messanger/src/services/event_broker"
+
 	"testing"
 	"time"
 
 	"messanger/src/events/request_events"
 	"messanger/src/services/messages"
 
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 )
-
-type mockBroker struct{}
-
-func (*mockBroker) Publish(
-	ctx context.Context,
-	log *logrus.Logger,
-	channel string,
-	message interface{},
-) error {
-	return nil
-}
-func (*mockBroker) Read(
-	ctx context.Context,
-	log *logrus.Logger,
-	channelKeys []string,
-	messagesChan chan event_broker.BrokerMessage,
-) error {
-	return nil
-}
 
 func TestUpdateMessage(t *testing.T) {
 	pool, cleanup, err := SetupTestDB()
@@ -76,7 +56,7 @@ func TestUpdateMessage(t *testing.T) {
 			Text:      textToUpdate,
 		},
 		creator.Id,
-		&mockBroker{},
+		&MockBroker{},
 	)
 
 	require.NoError(t, err)
@@ -101,7 +81,7 @@ func TestUpdateMessage(t *testing.T) {
 			Text:      textToUpdate,
 		},
 		receiver.Id,
-		&mockBroker{},
+		&MockBroker{},
 	)
 
 	require.Error(t, err)

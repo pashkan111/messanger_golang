@@ -1,6 +1,7 @@
 package ws
 
 import (
+	"context"
 	"fmt"
 	"messanger/src/entities"
 	"messanger/src/entities/api"
@@ -46,19 +47,22 @@ func NewWSHandler(pool *pgxpool.Pool, log *logrus.Logger, messageBroker event_br
 }
 
 func (h *WSHandler) HandleConnections(w http.ResponseWriter, r *http.Request) {
+	contextWithCancel, cancelContext := context.WithCancel(r.Context())
+	defer cancelContext()
+
 	token := r.Header.Get("Authorization")
 	if token == "" {
 		httpError(w, "Missing Authorization header", http.StatusUnauthorized)
 		return
 	}
 
-	user, err := auth.GetUserByToken(r.Context(), h.Pool, h.Log, entities.Token(token))
+	user, err := auth.GetUserByToken(contextWithCancel, h.Pool, h.Log, entities.Token(token))
 	if err != nil {
 		httpError(w, "Invalid token", http.StatusUnauthorized)
 		return
 	}
 
-	dialogsForListing, err := chats.GetDialogsForListing(r.Context(), h.Pool, h.Log, user.Id)
+	dialogsForListing, err := chats.GetDialogsForListing(contextWithCancel, h.Pool, h.Log, user.Id)
 
 	if err != nil {
 		httpError(w, "Internal server error", http.StatusInternalServerError)
@@ -73,7 +77,7 @@ func (h *WSHandler) HandleConnections(w http.ResponseWriter, r *http.Request) {
 	}
 
 	wsChannel := make(chan interface{})
-	messagesChannel := make(chan event_broker.BrokerMessage)
+	queueEventsChannel := make(chan event_broker.BrokerMessage)
 	stop := make(chan interface{})
 	keyChanged := make(chan []string)
 	channels := getChannelsKeysForUser(dialogsForListing)
@@ -81,7 +85,7 @@ func (h *WSHandler) HandleConnections(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		close(stop)
 		close(wsChannel)
-		close(messagesChannel)
+		close(queueEventsChannel)
 		close(keyChanged)
 
 		ws.Close()
@@ -89,13 +93,13 @@ func (h *WSHandler) HandleConnections(w http.ResponseWriter, r *http.Request) {
 
 	go func() {
 		err := consumers.ConsumeEvents(
-			r.Context(),
+			contextWithCancel,
 			h.Log,
 			h.MessageBroker,
 			channels,
-			messagesChannel,
-			stop,
+			queueEventsChannel,
 			keyChanged,
+			user.Id,
 		)
 		if err != nil {
 			h.Log.Errorf("could not consume events: %v", err)
@@ -114,7 +118,7 @@ func (h *WSHandler) HandleConnections(w http.ResponseWriter, r *http.Request) {
 			return
 		case message := <-wsChannel:
 			processedMessage, err := event_handlers.HandleEvent(
-				r.Context(),
+				contextWithCancel,
 				h.Pool,
 				h.Log,
 				user.Id,
@@ -128,8 +132,9 @@ func (h *WSHandler) HandleConnections(w http.ResponseWriter, r *http.Request) {
 			}
 			jsonMessage, _ := json.Marshal(processedMessage)
 			ws.WriteMessage(websocket.BinaryMessage, jsonMessage)
-		case messageFromConsumer := <-messagesChannel:
-			fmt.Println("Messages from consumer", messageFromConsumer["message"])
+		case messageFromConsumer := <-queueEventsChannel:
+			jsonMessage, _ := json.Marshal(messageFromConsumer)
+			ws.WriteMessage(websocket.BinaryMessage, jsonMessage)
 		}
 	}
 }

@@ -73,16 +73,6 @@ func HandleEvent(
 			return nil, err
 		}
 
-	case event_types.CreateDialogRequestEvent:
-		var createChatEvent request_events.CreateDialogEventRequest
-		err := json.Unmarshal(eventData, &createChatEvent)
-		if err != nil {
-			log.Error("Error with unmarshalling event:", err)
-			return nil, err
-		}
-
-		return CreateDialogEventHandler(ctx, pool, log, createChatEvent, currentUserId)
-
 	case event_types.DeleteDialogRequestEvent:
 		var deleteDialogEvent request_events.DeleteDialogEventRequest
 		err := json.Unmarshal(eventData, &deleteDialogEvent)

@@ -2,10 +2,32 @@ package tests
 
 import (
 	"context"
+	"messanger/src/services/event_broker"
 	"time"
 
 	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/sirupsen/logrus"
 )
+
+type MockBroker struct{}
+
+func (*MockBroker) Publish(
+	ctx context.Context,
+	log *logrus.Logger,
+	channel string,
+	message interface{},
+) error {
+	return nil
+}
+func (*MockBroker) Read(
+	ctx context.Context,
+	log *logrus.Logger,
+	channelKeys []string,
+	messagesChan chan event_broker.BrokerMessage,
+	stop chan interface{},
+) error {
+	return nil
+}
 
 type DialogTest struct {
 	Id         int

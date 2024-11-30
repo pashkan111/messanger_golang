@@ -1,154 +1,122 @@
 package tests
 
-// import (
-// 	"context"
-// 	"testing"
+import (
+	"context"
+	"messanger/src/enums/message_type"
+	"messanger/src/events/request_events"
+	"messanger/src/services/messages"
+	"testing"
 
-// 	"messanger/src/entities/message_entities"
-// 	"messanger/src/services/messages"
+	"github.com/stretchr/testify/require"
+)
 
-// 	"github.com/jackc/pgx/v4/pgxpool"
+func TestCreateMessageWithChat__DialogExists(t *testing.T) {
+	pool, cleanup, err := SetupTestDB()
+	require.NoError(t, err)
+	defer cleanup()
 
-// 	"github.com/stretchr/testify/require"
-// )
+	log := SetupLogger()
+	ctx := context.Background()
 
-// func createUser(
-// 	pool *pgxpool.Pool,
-// 	ctx context.Context,
-// 	username string,
-// 	phone string,
-// ) (int, error) {
-// 	var user_id int
-// 	err := pool.QueryRow(
-// 		ctx,
-// 		`INSERT INTO users (username, password, phone)
-// 		VALUES($1, '1234', $2)
-// 		RETURNING user_id
-// 		`,
-// 		username, phone,
-// 	).Scan(&user_id)
-// 	if err != nil {
-// 		return 0, err
-// 	}
-// 	return user_id, nil
-// }
+	user1 := GetTestUser(pool, UserTest{
+		Username: "pashkan1",
+		Password: "1234",
+		Phone:    "12345",
+	})
 
-// func createChat(
-// 	pool *pgxpool.Pool,
-// 	ctx context.Context,
-// 	user1 int,
-// 	user2 int,
-// ) (int, error) {
-// 	var chat_id int
-// 	err := pool.QueryRow(
-// 		ctx,
-// 		`INSERT INTO chat (creator_id, participants, name)
-// 		VALUES($1, ARRAY[$1, $2]::INTEGER[], 'chat')
-// 		RETURNING chat_id
-// 		`,
-// 		user1, user2,
-// 	).Scan(&chat_id)
-// 	if err != nil {
-// 		return 0, err
-// 	}
-// 	return chat_id, nil
-// }
+	user2 := GetTestUser(pool, UserTest{
+		Username: "pashkan2",
+		Password: "1234",
+		Phone:    "123454",
+	})
 
-// func TestCreateMessageWithChat__Success(t *testing.T) {
-// 	pool, cleanup, err := SetupTestDB()
-// 	require.NoError(t, err)
-// 	defer cleanup()
+	dialog := GetTestDialog(pool, DialogTest{
+		CreatorId:  user1.Id,
+		ReceiverId: user2.Id,
+	})
 
-// 	log := SetupLogger()
-// 	ctx := context.Background()
+	require.NoError(t, err)
 
-// 	user1, _ := createUser(pool, ctx, "pashkan1", "234455")
-// 	user2, err := createUser(pool, ctx, "pashkan2", "56464")
-// 	require.NoError(t, err)
+	messageId, err := messages.CreateMessage(
+		ctx,
+		pool,
+		log,
+		request_events.CreateMessageEventRequest{
+			MessageType: message_type.TextType,
+			ChatId:      dialog.Id,
+			ReceiverId:  user2.Id,
+			Text:        "HELLO!",
+		},
+		user1.Id,
+		&MockBroker{},
+	)
 
-// 	chat_id, err := createChat(pool, ctx, user1, user2)
-// 	require.NoError(t, err)
+	require.NoError(t, err)
+	require.NotEqual(t, 0, messageId)
 
-// 	message_id, err := messages.CreateMessageWithChat(
-// 		ctx,
-// 		pool,
-// 		log,
-// 		&message_entities.CreateMessageWithChat{
-// 			CreatorId: user1,
-// 			Text:      "HELLO!",
-// 			ChatId:    chat_id,
-// 		},
-// 	)
+	var messageCount int
+	pool.QueryRow(
+		ctx,
+		`SELECT COUNT(*) FROM dialog_message WHERE dialog_message_id = $1`,
+		messageId,
+	).Scan(&messageCount)
 
-// 	require.NoError(t, err)
-// 	require.NotEqual(t, 0, message_id)
+	require.Equal(t, 1, messageCount)
+}
 
-// 	var message_count int
-// 	pool.QueryRow(
-// 		ctx,
-// 		`SELECT COUNT(*) FROM message WHERE message_id = $1`,
-// 		message_id,
-// 	).Scan(&message_count)
+func TestCreateMessageWithChat__DialogNotExist(t *testing.T) {
+	pool, cleanup, err := SetupTestDB()
+	require.NoError(t, err)
+	defer cleanup()
 
-// 	require.Equal(t, 1, message_count)
-// }
+	log := SetupLogger()
+	ctx := context.Background()
 
-// func TestCreateMessageWithoutChat__NoChat(t *testing.T) {
-// 	pool, cleanup, err := SetupTestDB()
-// 	require.NoError(t, err)
-// 	defer cleanup()
+	user1 := GetTestUser(pool, UserTest{
+		Username: "pashkan1",
+		Password: "1234",
+		Phone:    "12345",
+	})
 
-// 	log := SetupLogger()
-// 	ctx := context.Background()
+	user2 := GetTestUser(pool, UserTest{
+		Username: "pashkan2",
+		Password: "1234",
+		Phone:    "123454",
+	})
 
-// 	user1, _ := createUser(pool, ctx, "pashkan1", "234455")
-// 	user2, err := createUser(pool, ctx, "pashkan2", "56464")
-// 	require.NoError(t, err)
+	messageId, err := messages.CreateMessage(
+		ctx,
+		pool,
+		log,
+		request_events.CreateMessageEventRequest{
+			MessageType: message_type.TextType,
+			ReceiverId:  user2.Id,
+			Text:        "HELLO!",
+		},
+		user1.Id,
+		&MockBroker{},
+	)
 
-// 	message, err := messages.CreateMessageWithoutChat(
-// 		ctx,
-// 		pool,
-// 		log,
-// 		&message_entities.CreateMessageWithoutChat{
-// 			CreatorId:  user1,
-// 			ReceiverId: user2,
-// 			Text:       "HELLO!",
-// 		},
-// 	)
+	require.NoError(t, err)
+	require.NotEqual(t, 0, messageId)
 
-// 	require.NoError(t, err)
-// 	require.NotEqual(t, 0, message.MessageId)
-// 	require.NotEqual(t, 0, message.ChatId)
+	// Check that dialog was created
+	var dialogCount int
+	pool.QueryRow(
+		ctx,
+		`SELECT COUNT(*) FROM dialog WHERE creator_id = $1 AND receiver_id = $2`,
+		user1.Id,
+		user2.Id,
+	).Scan(&dialogCount)
 
-// 	var chat_exists bool
-// 	pool.QueryRow(
-// 		ctx,
-// 		`SELECT EXISTS(SELECT 1 FROM chat WHERE chat_id = $1)`,
-// 		message.ChatId,
-// 	).Scan(&chat_exists)
+	require.Equal(t, 1, dialogCount)
 
-// 	require.True(t, chat_exists)
+	var messageCount int
+	pool.QueryRow(
+		ctx,
+		`SELECT COUNT(*) FROM dialog_message WHERE dialog_message_id = $1`,
+		messageId,
+	).Scan(&messageCount)
 
-// 	var dialog_exists bool
-// 	pool.QueryRow(
-// 		ctx,
-// 		`SELECT
-// 			EXISTS(
-// 				SELECT 1 FROM dialog WHERE creator_id=$1 AND participant_id=$2
-// 			)
-// 		`,
-// 		user1, user2,
-// 	).Scan(&dialog_exists)
-
-// 	require.True(t, dialog_exists)
-
-// 	var message_count int
-// 	pool.QueryRow(
-// 		ctx,
-// 		`SELECT COUNT(*) FROM message
-// 		WHERE message_id = $1 AND chat_id = $2 AND author_id = $3`,
-// 		message.MessageId, message.ChatId, user1,
-// 	).Scan(&message_count)
-
-// 	require.Equal(t, 1, message_count)
-// }
+	require.Equal(t, 1, messageCount)
+}
